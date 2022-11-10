@@ -1,0 +1,360 @@
+- This is the code I used for the EDA project
+- r studio (rmd파일)
+
+```{r setup, include=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+```
+
+## 데이터 소개 및 분석 목적 소개 
+1. 데이터 출처:IBM Watson Marketing Customer Value Data  
+{https://www.kaggle.com/pankajjsh06/ibm-watson-marketing-customer-value-data}
+
+2. 데이터소개      
+- 이 데이터세트는 Watson marketing의 고객의 가치에 대한 데이터임.
+- 이 데이터세트는 9134개의 객체와 24개의 변수로 구성되어있음  
+3. 변수 설명   
+ - Customer (고객 고유 번호)   
+   
+ - State 지역(미국의 주)
+   
+ - Customer Lifetime Value (고객 생애 가치)  
+   
+ - Response(응답)  
+   
+ - Coverage (보험의 적용범위)  
+   basic(기본)
+   extended(확장된)
+   premium (아주 높은)       
+     
+ - Education (교육)   
+  High School or Below(고졸 이하)  
+  cllage(2년제)  
+  bachelor(학사학위)  
+  Master(석사학위)  
+  Doctor(박사학위)   
+    
+ - Effective To Date (보험유효기간)  
+   
+ - EmploymentStatus (근무상태)  
+   employed (근무자)   
+   unemployed (실업자)
+   Medical Leave (병가/ 의료휴가) 
+   Disabled (장애인)
+   Retired (은퇴자) 
+     
+ - Gender(성별)  
+   
+ - Income(수입)    
+   
+ - Location Code(행정구역)     
+   suburban (도시외곽)  
+   urban (도시)  
+   rural (시골)  
+     
+ - Marital Status (결혼 여부)    
+   married (기혼)   
+   single (미혼)  
+   divorced (이혼)  
+   
+ - Monthly Premium Auto (자동차 월 보험료)   
+ 
+ - Months Since Last Claim(마지막 보험금 청구 이후 개월 수)  
+   
+ - Months Since Policy Inception (보험 증권 발행 후 개월 수)  
+    
+ - Number of Open Complaints (공개된 불만 건수)  
+   
+ - Number of Policies (보험 증권의 개수)  
+   
+ - Policy Type (보험 증권의 유형)  
+    personal auto (개인 자동차)
+    corporate auto (법인 자동차) 
+    special auto (특수한 자동차) 
+      
+ - Policy (보험 세부 유형)  
+   
+ - Renew Offer Type (갱신 제의 유형)  
+   
+ - Sales Channel (판매 경로)  
+    Agent (중개인)  
+    Web (웹사이트)  
+    Branch (지점)  
+    Call center (콜 센터)  
+      
+ - Total Claim Amount (총 청구금액)  
+   
+ - Vehicle Class (차량 종류)  
+ 
+ - Vehicle Size (차량의 크기)  
+
+4. 해결해야 할 문제  
+- 고객유지(customer retention)하기 위한 방안을 예측    
+- 고객의 인구통계학적 정보와 소비 행동을 이해  
+- 예측분석법을 이용해 가장 이득이 될만한 고객과 어떻게 연관되어있는지(상호작용하는지)를 분석(예측)
+- 이득이 되는 고객의 대응, 유지 및 성장을 증가(고객을 확보)시키기 위해 목표한 조치를 어떻게 취할 것인지 생각
+```{r  data,echo=FALSE, message=FALSE, warning=FALSE}
+#data 불러오기
+data<-read.csv("D:/EDA/WA_Fn-UseC_-Marketing-Customer-Value-Analysis_송미주.csv")
+knitr::kable(head(data), digits = 4)
+```
+
+## 자료분석    
+
+1.성별에 따른 응답 비율  
+ - 남성과 여성의 응답비율은 비슷하다고 볼 수 있음.  
+   
+```{r res, echo=FALSE, message=FALSE, warning=FALSE}
+#count plot
+res<-table(data$Response, data$Gender)
+barplot(res, col = c("blue", "red"), legend = rownames(res), xlab = "성별", ylab="응답 수", ylim=c(0,5000)  ,main="성별에 따른 응답비율", beside = TRUE )
+
+kable(res,digit=4)
+```  
+
+  
+  1. 성별에 따른 고객생애 가치
+- 학력에 따른 고객생애 가치는 고졸 혹은 그이하부터 학사학위까지는 조금씩 높아지고,석사/박사학위는 고객생애 가치가 많이 떨어지는 모습을 보임.  
+  
+```{r gender, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 6, out.height = "500pt"}
+G <-table(data$Customer.Lifetime.Value, data$Gender )
+
+barplot(G, ylim=c(0,6000), col="blue", main = "성별에 따른 고객생애 가치")
+
+G1<-aggregate(Customer.Lifetime.Value ~Gender, data=data, 
+              FUN=function(x){
+                c(N=length(x), MEAN=mean(x), SD=sd(x)) 
+              })
+G1 = data.frame(G1[,1], G1[,2]) 
+names(G1)[1] = "-"
+kable(G1)
+# 
+# mean(data$Customer.Lifetime.Value[data$Gender=="F"])
+# mean(data$Customer.Lifetime.Value[data$Gender=="M"])
+```
+  
+1. 학력에 따른 고객생애 가치
+- 학력에 따른 고객생애 가치는 고졸 혹은 그이하부터 학사학위까지는 조금씩 높아지고,석사/박사학위는 고객생애 가치가 많이 떨어지는 모습을 보임. 이는 석사/박사학위의 표본 수가 적기 때문이라고 생각함. 
+  
+```{r life, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 6, out.height = "500pt"}
+life<-table(data$Customer.Lifetime.Value, data$Education)
+
+#학력 순서대로 정리하기 
+life <- life[,c(4,2,1,5,3)]
+barplot(life, ylim=c(0,3000), col="blue", main = "학력에 따른 고객생애 가치")
+
+G2<-aggregate(Customer.Lifetime.Value ~Education, data=data, 
+              FUN=function(x){
+                c(N=length(x), MEAN=mean(x), SD=sd(x)) 
+              })
+G2 = data.frame(G2[,1], G2[,2]) 
+names(G2)[1] = "-"
+kable(G2)
+```
+  
+1. 근무 상태별 고객생애 가치   
+- 고용자들의 고객생애가치가 가장 높고, 가장 낮은 부분은 은퇴자임.
+```{r Employ, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 6, out.height = "500pt"}
+Employ<-table(data$Customer.Lifetime.Value, data$EmploymentStatus)
+
+# 순서대로 정리하기 
+Employ1 <- Employ[,c(2,5,4,1,3)]
+barplot(Employ1, ylim=c(0,6000), col="blue", main = "근무 상태별 고객생애 가치")
+
+G3<-aggregate(Customer.Lifetime.Value ~EmploymentStatus, data=data, 
+              FUN=function(x){
+                c(N=length(x), MEAN=mean(x), SD=sd(x)) 
+              })
+G3 = data.frame(G3[,1], G3[,2]) 
+names(G3)[1] = "-"
+kable(G3)
+```
+  
+  
+1. 고객 행정구역과 주거지역에 따른 고객생애 가치    
+- 도시 외곽의 고객생애 가치가 높고, california의 고객생애가치가 높게 나타남     
+```{r State, echo=FALSE, message=FALSE, warning=FALSE,  fig.height = 5, out.height = "500pt"  }
+State <- table(data$Customer.Lifetime.Value, data$State)
+barplot(State, col=13, main = "고객 주거지역에 따른 고객생애 가치")
+G4<-aggregate(Customer.Lifetime.Value ~State, data=data, 
+              FUN=function(x){
+                c(N=length(x), MEAN=mean(x), SD=sd(x)) 
+              })
+G4 = data.frame(G4[,1], G4[,2]) 
+names(G4)[1] = "-"
+kable(G4)
+
+location <- table(data$Customer.Lifetime.Value, data$Location.Code)
+barplot(location, col=18, main = "고객 행정구역에 따른 고객생애 가치")
+G5<-aggregate(Customer.Lifetime.Value ~Location.Code, data=data, 
+              FUN=function(x){
+                c(N=length(x), MEAN=mean(x), SD=sd(x)) 
+              })
+G5 = data.frame(G5[,1], G5[,2]) 
+names(G5)[1] = "-"
+kable(G5)
+
+
+```
+  
+1. 결혼 여부에 따른 고객생애 가치      
+- 기혼 고객의 생애 가치가 높고, 이혼 고객의 생애가치가 낮음. 
+```{r marry,echo=FALSE, message=FALSE, warning=FALSE,  fig.height = 5, out.height = "500pt"  }
+marry <- table(data$Customer.Lifetime.Value, data$Marital.Status)
+barplot(marry, col=13, main = "결혼 여부에 따른 고객생애 가치")
+G6<-aggregate(Customer.Lifetime.Value ~Marital.Status, data=data, 
+              FUN=function(x){
+                c(N=length(x), MEAN=mean(x), SD=sd(x)) 
+              })
+G6 = data.frame(G6[,1], G6[,2]) 
+names(G6)[1] = "-"
+kable(G6)
+```
+  
+1. 갱신 제의 유형과 자동차 구매경로  
+- 우선 갱신 제의 유형별 자동차 구매 경로를 보자면 중개인과 지점에서는 offer1 유형의 갱신제의가 유용했다고 볼 수 있고, 콜센터와 웹사이트에서는 offer2 유형의 갱신제의가 더 유용했다고 볼 수 있음.   
+```{r sales, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 5, out.height = "500pt"}
+offer<-table( data$Renew.Offer.Type,data$Sales.Channel)
+
+barplot(offer, ylim=c(0,2000),main="자동차 구매 경로별 갱신 제의 유형" , col = c("skyblue", "green", "orange", "yellow"),legend = rownames(offer), beside = TRUE)
+```
+  
+  
+1. 보험증권 유형별 보험 증권의 수   
+-  개인 자동차의 보험 증권의 개수가 제일 많다고 할 수 있음. 개인 자동차의 보험 증권의 개수가 가장 많은 이유는 고객들이 법인차량이나 특수차량을 몰고 다닌다기 보단 개인 자동차를 몰고 다니기 때문이라 생각함. 
+```{r Policy.Type, echo=FALSE, message=FALSE, warning=FALSE, fig.height = 6, out.height = "500pt"}
+NOPt<-table( data$Number.of.Policies,data$Policy.Type )
+
+barplot(NOPt, ylim=c(0,7000), col=c(18:26), main = "보험증권유형별 보험 증권의 개수", legend=rownames(NOPt))
+
+dotchart(NOPt)
+kable(NOPt)
+```
+  
+    
+  
+1. 보험 증권 유형별 차량의 종류    
+- 모든 보험 증권 유형에서 일반적인 자동차(네개의 문이 달린 자동차)가 많이 가입했다고 볼 수 있음. 이는 사람들이 가장 대중적으로 일반적인 자동차를 타고 다니기 때문에 이러한 결과가 나타났다고 생각함.   
+```{r Vehicle.Class, echo=FALSE, message=FALSE, warning=FALSE,  fig.height = 5,out.height = "500pt"}
+
+Vehicle.Class<-table(data$Vehicle.Class, data$Policy.Type)
+
+
+barplot(Vehicle.Class, ylim=c(0,3500),main="보험 증권 유형별 차량의 종류 " , col = c(30:35),legend = rownames(Vehicle.Class), beside = TRUE)
+#dotchart로 어느정도 위치에 존재하는지 보여줌 
+dotchart(Vehicle.Class)
+```
+  
+  
+1. 총 보험금 청구 금액
+- 남성과 여성의 총 보험금 청구금액의 분포가 비슷함. 하지만 여성의 총 보험금 청구 횟수가 조금 더 많음.  
+```{r total,echo=FALSE, message=FALSE, warning=FALSE,  fig.height = 5, out.height = "500pt"}
+de<-density(data$Total.Claim.Amount)
+plot(de, main= "전체 총 보험금 청구금액")
+
+par(mfrow = c(1, 2))
+df<-density(data$Total.Claim.Amount[data$Gender=="F"])
+plot(df, col="red", main = "여성의 총 보험금 청구금액")
+
+dm<-density(data$Total.Claim.Amount[data$Gender=="M"])
+plot(dm,col="blue", main = "남성의 총 보험금 청구금액")
+
+G7<-aggregate(Total.Claim.Amount ~Gender, data=data, 
+              FUN=function(x){
+             c(N=length(x), MEAN=mean(x), SD=sd(x)) 
+              })
+G7 = data.frame(G7[,1], G7[,2]) 
+names(G7)[1] = "-"
+kable(G7)
+
+```
+   
+   
+1. 보험 증권 발행 후 개월 수, 보험의 유효기간 
+-  보험 증권 발행 후 개월 수가 높을 수록 재계약을 할 가능성이 높다고 할 수 있음. 보험의 유효기간이 얼마 남지 않은 사람들을 대상으로 어떻게 갱신을 하도록 할 것인지 조치를 취해야함.
+```{r M,echo=FALSE, message=FALSE, warning=FALSE, fig.height = 5, out.height = "500pt"}
+dee<-table(data$Months.Since.Policy.Inception)
+barplot(dee, xlim=c(0,100), main="보험 증권 발행 후 개월 수")
+```
+
+```{r E,echo=FALSE, message=FALSE, warning=FALSE, fig.height = 5, out.height = "500pt"}
+da<- table(data$Effective.To.Date)
+barplot(da, ylim=c(0,200), main = "보험의 유효기간")
+```
+  
+## 결과 요약 및 시사점  
+1. 결과 요약  
+- 고객 생애 가치는 고졸 혹은 그 이하에서 학사 학위까지가 높게 나타나고 california쪽에 거주하는 고객들의 고객생애 가치가 더 높음. 
+ 그리고 여성이며, 결혼을 한 사람의 고객 생애 가치가 더 높게 나타남.   
+
+- 보험 증권 발행 후 개월 수가 높을 수록 보험 재계약 확률이 높고 장기적인 고객을 유지할 수 있음. 
+
+- 어느 보험 증권이든 일반적인 자동차의 보험이 가장 많이 들어있는 것을 볼 수 있음. 
+
+2. 시사점   
+- 보험 증권 발행 후 개월수가 낮은 고객들은 신규 고객들으로부터 잠재적인 수요를 낼 수 있으며 긍정적인 효과를 보일 수 있음. 하지만 신규 고객을 늘리기보단 기존 고객을 유지하도록 노력해야함.   
+
+- 보험의 유효기간이 얼마 남지 않은 고객에게 맞추어 고객이 보험을 갱신(재계약)할 방안을 생각해야한다고 생각함.   
+
+- 자동차 구매 경로별 갱신 제의 유형을 보면 고객을 유지할 때 차량 구매 경로에 따라 다른 갱신 제의를 하도록 해야함.  
+
+- 고객과의 관계를 유지하기 위해 고객충성도를 높일 수 있도록하고 고객 관계를 유지하고 개선할수록 평생 고객을 만들 수 있음.
+  
+## 참고문헌  
+
+1. 김진석 교수님 [Bigdata Lab.at DGU]      
+{http://datamining.dongguk.ac.kr/lectures/EDA/_book/index.html}    
+{http://datamining.dongguk.ac.kr/lectures/R/_book/index.html}    
+
+2. 경영칼럼 [신규 고객 늘리기보다 기존 고객 유지 힘써라]    
+{https://www.bain.com/ko/insights/customer-lifecycle/}    
+
+3. 관계 마케팅 성공을 위한 4가지 전제조건    
+{http://webcache.googleusercontent.com/search?q=cache:ZZ1X5YNJgMcJ:img.shinhan.com/cib/ko/data/FSB_0607_07.pdf+&cd=14&hl=ko&ct=clnk&gl=kr}  
+
+  
+## 부록
+
+1. data의 코드  
+    ```{r ref.label="data", eval=FALSE, echo=TRUE}
+    ```
+
+1. 성별에 따른 대답 비율 코드  
+    ```{r ref.label="res", eval=FALSE, echo=TRUE}
+    ```
+
+1. 생애 가치 관련 코드  
+    ```{r ref.label="gender", eval=FALSE, echo=TRUE}
+    ```
+    ```{r ref.label="life", eval=FALSE, echo=TRUE}
+    ```
+    ```{r ref.label="Employ", eval=FALSE, echo=TRUE}
+    ```    
+    ```{r ref.label="State", eval=FALSE, echo=TRUE}
+    ```    
+    ```{r ref.label="marry", eval=FALSE, echo=TRUE}
+    ```        
+
+
+1. 갱신 제의 유형과 자동차 구매경로 코드    
+    ```{r ref.label="sales", eval=FALSE, echo=TRUE}
+    ```
+    
+1. 보험증권 유형별 보험 증권의 수 코드
+    ```{r ref.label="Policy.Type" , eval=FALSE, echo=TRUE }
+    ```
+    
+    
+1. 보험 증권 유형별 차량의 종류 코드   
+    ```{r ref.label="Vehicle.Class" , eval=FALSE, echo=TRUE }
+    ```  
+      
+1. 총 보험금 청구 금액 코드  
+    ```{r ref.label="total" , eval=FALSE, echo=TRUE }
+    ```
+    
+1. 보험 증권 발행 후 개월 수, 보험의 유효기간 코드    
+    ```{r ref.label="M" , eval=FALSE, echo=TRUE }
+    ```
+    ```{r ref.label="E" , eval=FALSE, echo=TRUE }
+    ```
