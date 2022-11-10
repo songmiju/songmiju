@@ -118,7 +118,6 @@ choropleth(shp2, v=shp2$미세먼지농도, AREA2.shades)
 choro.legend(1200000, 1700000, AREA2.shades , under= "<=" , over = ">", between = "~") 
 
 ```
-
         
   -2019년 9월 23일 초미세먼지 자료의 시각화 (단계구분도)  
   -아래 자료를 보면 17개의 시군구의 초미세먼지 수치가 모두 0~10사이로 똑같은 색을 띄고 있다.
