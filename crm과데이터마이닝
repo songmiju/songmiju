@@ -134,7 +134,6 @@ cfit.ridge <- cv.glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=0)
 cfit.elnet <- cv.glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=.8)
 
 name = c( "lasso", "ridge", "elnet")
-
 lambda.min = c(cfit.lasso$lambda.min, cfit.ridge$lambda.min, cfit.elnet$lambda.min)
 
 df = data.frame(name, lambda.min)
