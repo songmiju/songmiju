@@ -29,7 +29,6 @@ library(stringr)
 # library(remotes)
 # install_github('haven-jeon/KoNLP', upgrade = "never", INSTALL_opts=c("--no-multiarch"))
 
-
 #페이지 년도별 4월달 베스트 셀러를 저장할 수 있는 함수 생성
 read_page = function(year){
   url <- paste0('http://www.yes24.com/24/category/bestseller?CategoryNumber=001&sumgb=09&year=', year, '&month=4')
