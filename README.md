@@ -1,7 +1,8 @@
 - 👋 Hi, I’m @songmiju
 - This is the code for a CRM과데이터마이닝
 
-#EDA
+## EDA
+
 stroke = read.csv("C:\\Users\\stat\\Desktop\\stroke.csv")
 stroke_re <- stroke %>%
   filter(
@@ -21,7 +22,7 @@ stroke_re <- stroke %>%
   )%>%
   select(-id)
 
-#확률 구하기
+## 확률 구하기
 dat_prop_gender <- stroke_re %>%
   group_by(gender) %>%
   summarise(prop = sum(stroke == "1")/length(gender))
@@ -50,7 +51,7 @@ dat_prop_smoking_status <- stroke_re %>%
   group_by(smoking_status) %>%
   summarise(prop = sum(stroke == "1")/length(smoking_status))
 
-#그래프
+##그래프
 b1 = ggplot(dat_prop_gender, aes(x=gender, y=prop, fill=gender))+geom_col(fill = "#074ca1")
 
 b2 = ggplot(dat_prop_hypertension, aes(x=hypertension, y=prop, fill=hypertension))+geom_col(fill = "#074ca1")
@@ -80,7 +81,7 @@ grid.arrange(grobs = list(b1, b2, b3,
              top = "EDA"
 )
 
-로지스틱회귀분석
+## 로지스틱회귀분석
 set.seed(214797)
 split <- sample(nrow(stroke_re), nrow(stroke_re) * 0.7, replace=F)
 fit1 = glm(stroke~.,data=stroke_re , family = "binomial")
@@ -133,7 +134,7 @@ par(mfrow=c(1,2))
 plot(fit.elnet, main = "Plot solution paths_elnet", font.main = 4, cex=0.05)
 plot(cfit.elnet, main = "최적 조율모수 (λ)의 탐색 _ elnet", font.main = 4, cex=0.05)
 
-의사결정나무
+## 의사결정나무
 minority_obs <- stroke_re %>% filter(stroke == 1)
 majority_obs <- stroke_re %>% filter(stroke == 0) %>% sample_n(nrow(minority_obs))
 balanced_data <- bind_rows(minority_obs, majority_obs)
@@ -150,7 +151,7 @@ pred = predict(cp_fit, newdata=balanced_data[-split,], uniform=TRUE)
 (t1 <- table(y=balanced_data$stroke[-split], pred=pred[,2]>0.5))
 (err <- 1- sum(diag(t1))/sum(t1))
 
-비교
+## 비교
 p.log = prediction(pred.log, stroke_re$stroke[-split])
 perf.log = performance(p.log, measure = "tpr", x.measure = "fpr")
 auc.log = as.numeric(performance(p.log, "auc")@y.values)
@@ -163,7 +164,7 @@ abline(0,1)
 text(0.5, 0.5, paste("AUC of tree:",round(auc,4)))
 text(0.5, 0.4, paste("AUC of logistic:",round(auc.log,4)))
 
-기타 감독학습 모형
+## 기타 감독학습 모형
 stroke_cat = stroke%>%
   select(age, 
          hypertension, 
@@ -191,14 +192,14 @@ pred = predict(model, stroke_cat[,-6])
 cm = table(pred, stroke$stroke)
 cm
  1- sum(diag(cm)/sum(cm))
-#검증 자료에 대해 예측
 
-# using laplace smoothing:
-# model2 =  naiveBayes(stroke ~ ., data = stroke_cat, laplace = 3)
-# pred = predict(model, stroke_nu[,-6])
-# lap = table(pred, stroke$stroke)
-# 
-#  1- sum(diag(lap)/sum(lap))
+## 검증 자료에 대해 예측
+
+#using laplace smoothing:
+#model2 =  naiveBayes(stroke ~ ., data = stroke_cat, laplace = 3)
+#pred = predict(model, stroke_nu[,-6])
+#lap = table(pred, stroke$stroke)
+#1- sum(diag(lap)/sum(lap))
 tr.idx = sample(nrow(stroke), 0.5*nrow(stroke))
 
 stroke1 = nnet(stroke~., data=stroke_knn[tr.idx,], size = 2, decay = 5e-4)
@@ -206,19 +207,16 @@ pred = predict(stroke1, stroke_knn[-tr.idx, -6], type="class")
 nn = table(stroke_knn$stroke[-tr.idx], pred)
 
 1- sum(diag(nn))/sum(nn)
-# tr.idx = sample(nrow(stroke), 0.5*nrow(stroke))
-# 
-# obj = tune(svm, stroke ~ ., 
-#            data = stroke_nu[tr.idx,], 
-#            type = "prob",          
-#            ranges = list(cost = c(0.25, 0.35)))
-# 
-# model <- svm(stroke ~., data = stroke_nu[tr.idx,],
-#              cost=obj$best.parameters$cost)
-# summary(model)
-# 
-# pred <- predict(model, newdata=so[-tr.idx,])
-# table(so$stroke[-tr.idx], pred)
+#tr.idx = sample(nrow(stroke), 0.5*nrow(stroke))
+#obj = tune(svm, stroke ~ ., 
+#data = stroke_nu[tr.idx,], 
+#type = "prob",          
+#ranges = list(cost = c(0.25, 0.35)))
+#model <- svm(stroke ~., data = stroke_nu[tr.idx,],
+#cost=obj$best.parameters$cost)
+#summary(model)
+#pred <- predict(model, newdata=so[-tr.idx,])
+#table(so$stroke[-tr.idx], pred)
 
 svm_model <- svm(stroke ~. , data = stroke_nu[tr.idx,], type = "C-classification", kernel = "radial")
 
@@ -227,7 +225,7 @@ svm_training_error <- mean(svm_training_prediction != stroke_nu[tr.idx,]$stroke)
 
 svm_training_error
 
-앙상블방법(Ensemble)
+## 앙상블방법(Ensemble)
 stroke_nu$stroke = as.integer(stroke_nu$stroke==1)
 
 stroke_nu$bmi = ifelse(is.na(stroke$bmi), 28.89324, stroke$bmi)
@@ -254,8 +252,6 @@ p_boo <- prediction(pred.boo, stroke_nu$stroke[-tr.idx])
 roc_boo <- performance(p_boo, measure = "tpr", x.measure = "fpr") 
 auc_boo <- round(performance(p_boo, measure = "auc")@y.values[[1]], 4)
 plot(roc_boo, main=paste0("ROC of gbm (AUC=", auc_boo, ")"))
-
-코드청크 첨부가 안되어 코드를 따로 첨부합니다
 
 ref.label = “a3”
 pred.log <- predict(fit2, newdata=stroke_re[-split,], type=“response”)
