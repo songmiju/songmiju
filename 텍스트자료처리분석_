@@ -1,3 +1,6 @@
+- 👋 Hi, I’m @songmiju
+- This is the code for a 텍스트자료처리분석
+
 ## 크롤링코드
 get_ipython().system('pip install selenium')
 
@@ -62,8 +65,289 @@ for i in range(len(reviews)):
 res_df = pd.DataFrame(res_dict)
 res_df
 
-
-# In[ ]:
-
-
 res_df.to_csv("카카오 앱 리뷰 .csv")
+
+get_ipython().system('pip install konlpy')
+
+get_ipython().system('pip install graphviz')
+
+
+get_ipython().system('pip install wordcloud')
+
+
+nltk.download('stopwords')
+
+nltk.download('punkt')
+
+import re
+import pandas as pd
+import numpy as np
+
+import nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.tokenize import sent_tokenize
+from nltk import ngrams
+from konlpy.tag import *
+
+from konlpy.tag import Okt 
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.tree import export_graphviz
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import accuracy_score
+
+import os
+import matplotlib as plt
+import matplotlib.pyplot as plt
+from collections import Counter
+from wordcloud import WordCloud
+
+import seaborn as sns 
+import graphviz
+import pickle
+
+import matplotlib.font_manager as font_manager
+
+#데이터 불러오기
+df = pd.read_csv("C:\\Users\\송미주\\Desktop\\카카오 앱 리뷰 .csv", encoding= 'cp949')
+
+#dataframe에서 review만 뽑아서 review에 저장
+review = df[['REVIEW']]
+review.to_csv("review.txt")
+
+review = open ("review.txt", 'r', encoding= 'utf-8') #읽기전용('r': read)으로 review파일 불러오기
+reviews = review.read()
+print(reviews)
+
+#불용어를 제거한 후 DTM 만들기
+#사용자 정의 불용어 사용 
+
+text =[reviews]
+stop_words = stopwords.words(['C:\\Users\\송미주\\Desktop\\stopwords.txt']) #koren stopword를 txt파일로 저장하여 사용
+vect = CountVectorizer(stop_words=['stop_words']) 
+m = vect.fit_transform(text)
+
+print(m.toarray()) #returns an ndarray
+print(vect.vocabulary_)#단어 사전 출력
+
+
+a = sent_tokenize(reviews)#단락을 문장단위로 분리
+
+#문장에 대한 tokenizer정의
+def tokenizer(raw_texts, pos=["Noun","Verb"], stopword=[]):# 형태소가 명사,동사에 해당되는 단어 추출
+    p = okt.pos(raw_texts, 
+            norm=True,   # 정규화(normalization)
+            stem=True    # 어간추출(stemming) 처리
+            )
+    o = [word for word, tag in p if len(word) > 1 and tag in pos and word not in stopword]
+    return(o)
+
+
+#TF-IDF기반 DTM
+vectorize = TfidfVectorizer(
+    tokenizer=tokenizer, # 문장에 대한 tokenizer (위에서 정의한 함수 이용)
+    min_df=1,            # 단어가 출현하는 최소 문서의 개수
+    sublinear_tf=True    # tf값에 1+log(tf)를 적용하여 tf값이 무한정 커지는 것을 막음
+)
+
+X = vectorize.fit_transform(a) # fit_transform 함수를 통해Vector로 만들 수 있음
+X.toarray() #returns an ndarray
+
+
+#코사인 유사도 측정
+cos_x = cosine_similarity(X, X)
+cos_x
+
+#형태소분석
+okt = Okt() #단어들을 알아서 조금 정규화해주고, 오타도 조금 수정해주는 기능이 있음
+
+oo = okt.pos(corpus[0],
+        norm=True,   # 정규화(normalization)
+        stem=True    # 어간추출(stemming)
+        )
+
+print(oo)
+
+
+count = Counter(tok)#갯수를 세어준다
+words = dict(count.most_common(50))#딕셔너리로 저장한다 , 데이터의 개수가 많은 순으로 정렬된 배열을 리턴 -> 50개 
+words
+
+
+#카카오톡 리뷰에 대한 워드클라우드
+wordcloud = WordCloud(font_path = 'C:/Windows/Fonts/malgun.ttf',
+                      background_color='white',
+                      colormap = "Accent_r", 
+                      stopwords =stopwords).generate_from_frequencies(words)
+plt.imshow(wordcloud) 
+plt.show()
+
+
+#1-grams
+n = 1 # n 의 개수를 설정
+kko1=[]
+sixgrams = ngrams(tok, n)
+for grams in sixgrams:
+    kko1.append(grams)
+
+
+kko1=pd.DataFrame(kko1) #데이터프레임을 만들어준다
+
+kko1['full'] = kko1
+
+
+count1 = Counter(kko1['full']) #갯수를 세어주고
+words1 = count1.most_common(20) #상위 20개만 나타나도록 한다.
+word1 = pd.DataFrame(words1)
+word1
+
+
+plt.figure(figsize=(15,6))
+plt.plot(word1[0],word1[1])
+plt.grid(True)
+plt.title("bigram")
+plt.show()
+
+#2-grams
+n = 2
+kko2=[]
+sixgrams = ngrams(tok, n)
+for grams in sixgrams:
+    kko2.append(grams)
+
+kko2=pd.DataFrame(kko2)
+
+
+
+kko2['full'] = kko2[0]+" "+kko2[1]#첫번째 단어와 두번째 단어를 합쳐서 full이라는 변수에 저장한다.
+
+count2 = Counter(kko2['full'])
+words2 = count2.most_common(20)
+word2 = pd.DataFrame(words2)
+
+word2
+
+plt.figure(figsize=(15,6))
+plt.plot(word2[0],word2[1])
+plt.grid(True)
+plt.title("unigram")
+plt.show()
+
+#3-grams
+n = 3
+kko3=[]
+sixgrams = ngrams(tok, n)
+for grams in sixgrams:
+    kko3.append(grams)
+
+kko3=pd.DataFrame(kko3)
+kko3['full'] = kko3[0]+" "+kko3[1]+" "+kko3[2]
+
+
+count3 = Counter(kko3['full'])
+words3 = count3.most_common(30)
+word3 = pd.DataFrame(words3)
+
+
+word3
+
+plt.figure(figsize=(15,6))
+plt.plot(word3[0],word3[1])
+plt.grid(True)
+plt.title("trigram")
+plt.show()
+
+
+k = df['STAR'].str.split(' ').str[3] # STAR변수를 띄어쓰기 기준으로 나누고 4번째만 가져온다
+
+
+k = k.str.extract('(\d+)')#숫자만 가져온다
+
+
+k= k.astype(float) #float으로 데이터 타입을 바꾸어준다
+
+df["별점수"] = k #df에 별점수라는 변수를 만들어 k (별점수)를 저장한다.
+df
+
+#별점수 전처리 함수 정의
+def star_preprocessing(value):
+    if value <= 3 : #여기서 value는 별점수를 의미하며 별점수가 3이하는 부정적인 리뷰로, 4이상은 긍정적인 리뷰로 생각한다.
+        return '0' 
+    else:
+        return '1'
+    
+# 형태소 분석 함수 정의 
+def tokenizer (text):
+    okt =Okt()
+    return okt.morphs(text) # morphs : 형태소 추출
+
+#train set(학습 데이터 셋)과 test set(테스트 셋)을 분리
+def step1_data_preprocessing() :
+    df['rating'] = df['별점수'].apply(star_preprocessing) #별점수 전처리를 하여 rating이라는 변수에 저장한다.
+    text_list =df['REVIEW'].tolist()
+    star_list =df['rating'].tolist()
+    
+    #test_size : 테스트 데이터셋의 비율(float)이나 갯수(int) (default = 0.25)
+    #train_size : 학습 데이터셋의 비율(float)이나 갯수(int) (default = test_size의 나머지)
+    #random_state : 데이터 분할시 셔플이 이루어지는데 이를 위한 시드값 (int나 RandomState로 입력)
+    
+    #X_train, X_test, Y_train, Y_test : arrays에 데이터와 레이블을 둘 다 넣었을 경우의 반환이며, 데이터와 레이블의 순서쌍은 유지됨.
+    text_train, text_test, star_train, star_test = train_test_split(text_list, star_list, test_size=0.2, random_state=0)
+    return text_train, text_test, star_train, star_test
+
+
+def step2_learning(X_train, y_train, X_test, y_test): 
+    
+    #주어진 데이터를 단어 사전으로 만들고 각 단어의 빈도수를 계산한 후 벡터화 하는 객체 생성
+    tfidf = TfidfVectorizer(lowercase=False, tokenizer=tokenizer)
+    
+    #문장별 나오는 단어수 세서 수치화, 벡터화해서 학습을 시킨다.
+    logistic = LogisticRegression(C=10.0, penalty='l2', random_state=0) #로지스틱 회귀분석
+    pipe = Pipeline([('vect', tfidf), ('clf', logistic)]) #파이프라인(pipeline) 기능을 이용하여 분류 모형과 합칠 수 있다
+    pipe.fit(X_train, y_train) #X_train, y_train이 전처리 클래스를 만나 fit , transform
+    
+    # 학습 정확도 측정
+    y_pred = pipe.predict(X_test) #test 사례 예측
+    print(accuracy_score(y_test, y_pred))
+    
+    # 학습된 모델을 저장한다.
+    with open('pipe.dat', 'wb') as fp :
+        pickle.dump(pipe, fp)
+    print('저장완료')
+
+
+def step3_using_model() :
+    #객체를 복원한다.
+    with open('pipe.dat', 'rb') as fp:
+        pipe = pickle.load(fp)
+        while True:
+            text = input('리뷰를 작성해주세요 :')
+            str = [text]
+            # 예측 정확도
+            r1 = np.max(pipe.predict_proba(str) * 100)
+            # 예측 결과
+            r2 = pipe.predict(str)[0]
+            if r2 == '1' :
+                print('긍정적인 리뷰')
+            else :
+                print('부정적인 리뷰')
+                print('정확도 : %.3f' % r1)
+
+
+#학습 함수
+def learning() :
+    text_train, text_test, star_train, star_test = step1_data_preprocessing()
+    step2_learning(text_train, star_train, text_test, star_test)
+
+#사용 함수
+def using() :
+    step3_using_model()
+
+learning()
+
+using()
