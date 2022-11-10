@@ -4,6 +4,7 @@
 ## EDA
 
 stroke = read.csv("C:\\Users\\stat\\Desktop\\stroke.csv")
+
 stroke_re <- stroke %>%
   filter(
     bmi != "N/A",
@@ -51,7 +52,7 @@ dat_prop_smoking_status <- stroke_re %>%
   group_by(smoking_status) %>%
   summarise(prop = sum(stroke == "1")/length(smoking_status))
 
-##그래프
+## 그래프
 b1 = ggplot(dat_prop_gender, aes(x=gender, y=prop, fill=gender))+geom_col(fill = "#074ca1")
 
 b2 = ggplot(dat_prop_hypertension, aes(x=hypertension, y=prop, fill=hypertension))+geom_col(fill = "#074ca1")
@@ -83,13 +84,19 @@ grid.arrange(grobs = list(b1, b2, b3,
 
 ## 로지스틱회귀분석
 set.seed(214797)
+
 split <- sample(nrow(stroke_re), nrow(stroke_re) * 0.7, replace=F)
+
 fit1 = glm(stroke~.,data=stroke_re , family = "binomial")
+
 fit2 =step(fit1, trace = F)
+
 summary(fit2)
 
 odds = exp(coef(fit2))
+
 knitr::kable(odds, col.names = "오즈비", caption ="각 변수에 대한 오즈비")
+
 so = stroke %>%
   filter(
     bmi != "N/A",
@@ -110,58 +117,93 @@ so = stroke %>%
 tr.idx = sample(nrow(so), 0.5*nrow(so))
 
 x= data.matrix(so[,c(2,3,4,8,9)])
+
 y= so[,11]
 
 fit.lasso <- glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=1)
+
 fit.ridge <- glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=0)
+
 fit.elnet <- glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=.8)
 
 
 cfit.lasso <- cv.glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=1)
+
 cfit.ridge <- cv.glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=0)
+
 cfit.elnet <- cv.glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=.8)
+
 name = c( "lasso", "ridge", "elnet")
+
 lambda.min = c(cfit.lasso$lambda.min, cfit.ridge$lambda.min, cfit.elnet$lambda.min)
 
 df = data.frame(name, lambda.min)
+
 knitr::kable(df)
 
 fit2.lasso <- glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=1, lambda=cfit.lasso$lambda.min)
+
 fit2.ridge <- glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=0, lambda=cfit.ridge$lambda.min)
+
 fit2.elnet <- glmnet(x=x[tr.idx, ], y=y[tr.idx], family="binomial", alpha=.8, lambda=cfit.elnet$lambda.min)
 
 par(mfrow=c(1,2))
+
 plot(fit.elnet, main = "Plot solution paths_elnet", font.main = 4, cex=0.05)
+
 plot(cfit.elnet, main = "최적 조율모수 (λ)의 탐색 _ elnet", font.main = 4, cex=0.05)
+
 
 ## 의사결정나무
 minority_obs <- stroke_re %>% filter(stroke == 1)
+
 majority_obs <- stroke_re %>% filter(stroke == 0) %>% sample_n(nrow(minority_obs))
+
 balanced_data <- bind_rows(minority_obs, majority_obs)
+
 stroke.rp = rpart(stroke~., balanced_data,
                   subset=split,
                   method = "class")
+                  
 par(mfrow=c(1,2))
+
 printcp(stroke.rp)
+
 plotcp(stroke.rp)
+
 cp_fit = prune(stroke.rp, cp=0.024)
+
 rpart.plot(cp_fit, main="의사결정나무", branch.lty=3, shadow.col="gray", 
            nn=TRUE)
+           
 pred = predict(cp_fit, newdata=balanced_data[-split,], uniform=TRUE)
+
 (t1 <- table(y=balanced_data$stroke[-split], pred=pred[,2]>0.5))
+
 (err <- 1- sum(diag(t1))/sum(t1))
+
 
 ## 비교
 p.log = prediction(pred.log, stroke_re$stroke[-split])
+
 perf.log = performance(p.log, measure = "tpr", x.measure = "fpr")
+
 auc.log = as.numeric(performance(p.log, "auc")@y.values)
+
 p = prediction (pred[,2], balanced_data$stroke[-split])
+
 perf = performance(p ,measure ="tpr", x.measure = "fpr")
+
 auc = as.numeric(performance(p, "auc")@y.values)
+
 plot(perf, col="red",xlab="FPR (Flase Positive Rate)" , ylab="TPR(True Positive rate)")
+
 plot(perf.log, add = TRUE, col="blue")
+
 abline(0,1)
+
 text(0.5, 0.5, paste("AUC of tree:",round(auc,4)))
+
 text(0.5, 0.4, paste("AUC of logistic:",round(auc.log,4)))
 
 ## 기타 감독학습 모형
@@ -175,38 +217,57 @@ stroke_cat = stroke%>%
 
 stroke_nu = stroke %>%
   select(age, hypertension, heart_disease, avg_glucose_level, bmi, stroke) 
+  
 stroke_cat1 = stroke_cat
+
 stroke_cat1$age = cut(stroke$age, c(-Inf, median(stroke$age), Inf))
+
 stroke_cat1$hypertension =  cut(stroke$hypertension, c(-Inf, median(stroke$hypertension), Inf))
+
 stroke_cat1$heart_disease= cut(stroke$heart_disease, c(-Inf, median(stroke$heart_disease), Inf))
+
 stroke_cat1$avg_glucose_level = cut(stroke$avg_glucose_level, c(-Inf, median(stroke$avg_glucose_level), Inf))
 
 stroke$bmi = ifelse(is.na(stroke$bmi), 28.89324, stroke$bmi)
+
 stroke$bmi=as.numeric(stroke$bmi)
+
 stroke_cat$bmi = cut(stroke$bmi, c(-Inf, median(stroke$bmi), Inf))
 
 model = naiveBayes(stroke ~ ., data = stroke_cat)
 
 predict(model, stroke_cat[1:6,-6], type = "raw") #사후확률 추정
+
 pred = predict(model, stroke_cat[,-6])
+
 cm = table(pred, stroke$stroke)
+
 cm
+
  1- sum(diag(cm)/sum(cm))
 
 ## 검증 자료에 대해 예측
 
 #using laplace smoothing:
+
 #model2 =  naiveBayes(stroke ~ ., data = stroke_cat, laplace = 3)
+
 #pred = predict(model, stroke_nu[,-6])
+
 #lap = table(pred, stroke$stroke)
+
 #1- sum(diag(lap)/sum(lap))
+
 tr.idx = sample(nrow(stroke), 0.5*nrow(stroke))
 
 stroke1 = nnet(stroke~., data=stroke_knn[tr.idx,], size = 2, decay = 5e-4)
+
 pred = predict(stroke1, stroke_knn[-tr.idx, -6], type="class")
+
 nn = table(stroke_knn$stroke[-tr.idx], pred)
 
 1- sum(diag(nn))/sum(nn)
+
 #tr.idx = sample(nrow(stroke), 0.5*nrow(stroke))
 #obj = tune(svm, stroke ~ ., 
 #data = stroke_nu[tr.idx,], 
