@@ -98,7 +98,6 @@ library(knitr)
 data<-read.csv("D:/EDA/WA_Fn-UseC_-Marketing-Customer-Value-Analysis_송미주.csv")
 knitr::kable(head(data), digits = 4)
 ```
-
 ## 자료분석    
 
 1.성별에 따른 응답 비율  
