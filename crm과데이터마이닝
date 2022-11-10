@@ -24,6 +24,7 @@ stroke_re <- stroke %>%
   )%>%
   select(-id)
 
+
 ## 확률 구하기
 dat_prop_gender <- stroke_re %>%
   group_by(gender) %>%
