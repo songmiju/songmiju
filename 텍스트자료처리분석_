@@ -1,5 +1,6 @@
 - 👋 Hi, I’m @songmiju
 - This is the code for a 텍스트자료처리분석
+- python 
 
 ## 크롤링코드
 get_ipython().system('pip install selenium')
