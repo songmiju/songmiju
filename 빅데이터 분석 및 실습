@@ -1,0 +1,184 @@
+- This is the code I used as a big data analysis and practice assignment
+- r studio(rmd)
+
+#데이터 소개 및 변수 설명
+1.데이터 출처 : yes24의 연도별 베스트셀러
+
+http://www.yes24.com/24/category/bestseller?CategoryNumber=001&sumgb=09&year=2020&month=4
+
+2. 데이터 소개
+
+이 데이터는 2020년부터 2015년의 4월 베스트셀러 top 20의 데이터이다.
+
+3. 변수설명 
+-Title : 책 제목    
+-Authors : 책의 저자   
+-Publisher:  출판사   
+-publication_date : 출판일    
+-Price : 책의 세일 가격
+-Number of reviews : 책의 리뷰 개수
+
+#데이터 정렬
+```{r echo=TRUE, warning=TRUE, include=FALSE}
+
+library(xml2)
+library(rvest) #웹 스크래핑을 하기위한 함수 
+library(httr)
+library(stringr)
+
+# library(remotes)
+# install_github('haven-jeon/KoNLP', upgrade = "never", INSTALL_opts=c("--no-multiarch"))
+
+
+#페이지 년도별 4월달 베스트 셀러를 저장할 수 있는 함수 생성
+read_page = function(year){
+  url <- paste0('http://www.yes24.com/24/category/bestseller?CategoryNumber=001&sumgb=09&year=', year, '&month=4')
+  page = read_html(url)
+  # 제목 따오기 
+  title = page %>% html_nodes('td.goodsTxtInfo > p:nth-child(1) > a:nth-child(1)') %>% html_text()
+  
+  # 저자 ,출판사, 출판날짜  따오기 
+  name = page %>% html_nodes('td.goodsTxtInfo > div') %>% html_text()
+  
+  name = str_replace_all(name, '[\n\t\r]', '') 
+  name = str_replace_all(name, '\\s+', '') 
+  name_split = str_split(name, '\\|') 
+  name_v = do.call(rbind, name_split)
+  
+  #책의 세일가격 따오기
+  price = page %>% html_nodes( 'tr > td.goodsTxtInfo > p:nth-child(3) > span.priceB') %>% html_text
+  
+  #리뷰가 몇개있는지 따오기
+ review <- page %>% html_nodes(' tr > td.goodsTxtInfo > p.review > a') %>% html_text()
+  
+ output = data.frame(cbind(title, name_v, price, review))
+  
+  #컬럼별 네임 지정해주기 
+  names(output) = c('title', 'authors','publisher','publication_date', 'price', 'Number of reviews')
+  
+  output 
+}
+
+```
+
+```{r}
+
+#필요한 년도의 베스트셀러 추출
+
+year_2020 = read_page(2020)
+year_2019 = read_page(2019)
+year_2018 = read_page(2018)
+year_2017 = read_page(2017)
+year_2016 = read_page(2016)
+year_2015 = read_page(2015)
+
+
+#가져온 년도를 year_all 으로 묶어주기 
+year_all <- rbind(year_2015,year_2016,year_2017, year_2018, year_2019, year_2020)
+
+head(year_all, 5)
+```
+
+```{r}
+#자료 정리하기 
+#strsplit을 사용하여 title과 authors를 따로 불러온다. 
+#자료를 불러올 때 ,를 기준으로 나눈다. 
+year_t_all <- strsplit(as.character(year_all$title), split = ",")
+year_a_all <- strsplit(as.character(year_all$authors), split = ",")
+
+#함수를 리스트로 주어진 인자에 적용하여 결과를 반환한다. 
+x<-do.call(c, year_t_all)
+y<-do.call(c, year_a_all)
+
+#필요없는 부분을 정리한다
+#문자열의 공백들을 제거한다. space: tab, newline, vertical tab, form feed, carriage return, and space
+#nchar : 고정길이를 갖는 유니코드 문자 데이터형이 2이하인 것을 제외하여 추출.
+x <- str_trim(x)
+x <- str_split(x, "[[:space:]]"); head(x,2)
+x <- x[nchar(x)>2]
+
+y <- str_trim(y)
+y <- str_split(y, "[[:space:]]");  head(y, 2)
+y <- y[nchar(y)>2]
+
+```
+
+#베스트 20에서 grep함수를 사용하여 패턴탐색을 해볼 수 있다. 
+```{r}
+
+#토익/영어 관련 책이 베스트 셀러에 몇 권 정도 있는가?
+grep("토익|영어", x= x, value=T)
+
+# 한국역사 관련 책이 베스트 셀러에 몇 권 정도 있는가?
+grep("역사|한국사|한국", x=x, value=TRUE)
+
+#학습/교양/공부/지식에 관한 책이 베스트 셀러에 몇 권정도 있는가
+grep("학습|교양|공부|지식", x=x, value=TRUE)
+
+#나미야 잡화점의 기적
+#데이터는 2020년부터 2015년도까지 6년간의 데이터를 뽑았으므로 나미야 잡화점의 기적은 약 4년동안 베스트셀러에 있었다고 볼 수 있다.
+grep("나미야", x=x, value=T)
+
+#설민석님의 책은 몇 권이나 베스트셀러에 올랐을까 ?
+grep("설민석", x=y, value=TRUE)
+
+```
+
+
+
+
+# 나미야 잡화점의 기적이 몇년간 인기 책이었음 -> 리뷰 분석
+```{r}
+
+library(N2H4) #getContent를 사용하기 위해 필요함 
+
+#lapply : 입력으로 vector 또는 list 를 받아 list 를 반환한다. 
+review <- lapply(1:20, function(page){
+  
+  n_url <- paste0('http://www.yes24.com/Product/communityModules/GoodsReviewList/8157957?Sort=1&PageNumber=', page,'&Type=ALL&_=1587783919917')
+  nn <- getContent(n_url) # 응답 객체에서 컨텐츠 가져 오기
+  
+  nr_table  <- read_html(n_url)
+  
+  title <- html_nodes(nr_table, xpath='//*[@id="infoset_reviewContentList"]/div/div[3]/div[2]')
+  title <- html_text(title)
+})
+
+#do,call 함수를 리스트로 주어진 인자에 적용하여 결과를 반환한다.
+review <- do.call(rbind, review)
+
+#데이터를 정리해준다.
+#\n\t\r 과 punct(문장부호: ! ” # % & ’ ( ) * + , - . / : ;)를 지워줌
+content <- stringr::str_replace_all(review, '[\n\t\r]', '')
+content <- stringr::str_replace_all(content, "[[:punct:]]", " ")
+
+#한글 자연어 분석 패키지 는 한국어를 분석할 수 있는 27개의 함수가 내장되어 있으며, 이 중에서 형태소를 분석할 수 있는 함수를 제공합니다.
+library(KoNLP)
+useNIADic() #사전을 가지고 온다. 
+
+
+out1 <- lapply(content, extractNoun) #명사를 추출
+out1[1:2]
+
+out_v <- do.call(c, out1)
+wt <- table(out_v)
+
+#nchar : 고정길이를 갖는 유니코드 문자 데이터형이 1이하인 것을 제외하여 추출.
+wt <- wt[nchar(names(wt)) > 1]
+
+#내림차순으로 정리하기 
+sort(wt, decreasing = T)[1:30]
+
+#워드 클라우드를 만들어준다.
+#tordms brewer.pal OrRd색으로 만들어 준다.
+library(RColorBrewer)
+library(wordcloud)
+pal <- brewer.pal(9,"OrRd")
+wordcloud(words=names(wt), #단어들
+          freq=wt, #단어들의 빈도
+          min.freq=5, #단어의 최소빈도   
+          random.order=F, #TRUE 이면 램덤으로 단어출력, FALSE 이면 빈도수가 큰 단어일수록 중앙에 배치
+          random.color=F, #TRUE 이면 단어색은 랜덤순으로 정해지고, FALSE이면 빈도순으로 정해짐
+          colors=pal) #가장 작은 빈도부터 큰 빈도까지의 단어색
+
+```
