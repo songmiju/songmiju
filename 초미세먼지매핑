@@ -1,0 +1,425 @@
+-초미세먼지 데이터 분석
+-r studio (rmd)
+
+## 1.서론: 시도별 초미세먼지 데이터 소개 및 분석 방향  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.path='figures/', fig.width=10, fig.height=8)
+```
+
+
+   1.1데이터 출처: airkorea의 시도별 대기정보(PM2.5)  
+   [airkorea] {https://www.airkorea.or.kr/web/sidoQualityCompare?itemCode=10008&pMENU_NO=102}     
+        
+  1.2 데이터소개1    
+         
+  - 초미세먼지: 직경 2.5㎛ 이하의 미세먼지로, 눈에 보이지 않을 정도로 입자가 작은 먼지를 일컫는다.   
+  - 관측시점 : 2018년/2019년 9월 23일  
+  - 관측지점 : 우리나라 17개 시도별  
+  - 데이터 컬럼: 시군구와 미세먼지 농도  
+    
+    
+    데이터소개2  
+    
+  - 관측시점 : 2018년/2019년 9월  
+  - 관측지점 : 우리나라 17개 시도별  
+  - 데이터컬럼 : 날짜, 우리나라 17개 시도로 총 17개의 변수로 구성  
+      
+  1.3 데이터 분석의 목적    
+         
+  - 2019년과 2018년 9월 23일의 지역별 자료의 시각화  
+  - 한달 시점으로 초미세먼지의 변화 분석.  
+     
+     
+## 2.본론 : 자료분석 
+1. 2018년/2019년 9월 23일의 초미세먼지 자료 통계   
+- 2018년 9월 23일의 미세먼지량은 10~23사이이며, 평균값이 16.71로 지역간의 차이가 나타난다.  
+- barplot을 보자면 막대가 높게 분포되어있다.
+```{r lastyear, echo=FALSE, message=FALSE, warning=FALSE}
+#자료 불러오기 
+#자료를 불러올 때, sheet 1의 앞의 세 줄을 빼고 가져도도록 함.
+#col_type으로 시군구는 text(문자)로, 미세먼지 농도는 numeric(정수)로 나타내도록 지정함.
+
+library("readxl")
+lastyear<-read_excel("C:\\Users\\aldo9\\OneDrive\\바탕 화면\\R 연습\\2018년 9월.xls", col_types=c('text', 'numeric'), sheet=1, na="-", skip=3)
+
+#문서의 형태에 상관없이 테이블을 만들어 보여준다.
+knitr::kable(head(lastyear), digits = 4)
+
+#lastyear의 초미세먼지 자료의 요약을 해 보여준다.
+  
+summary(lastyear)
+
+barplot(lastyear$미세먼지농도, col="skyblue", beside=TRUE, names=(lastyear$시군구), las=2, ylim=c(0,25), ylab="미세먼지 농도", main="시도별 초미세먼지")
+```  
+- 2019년 9월 23일의 미세먼지량은 5~9사이이며,평균값이 6으로 지역간의 차이가 거의없다고 볼 수 있다.  
+      하지만 이상값이 발견되는 것을 볼 수 있다.  
+- barplot을 보자면 막대가 대체로 낮게 분포되어있다.
+```{r year, echo=FALSE, message=FALSE, warning=FALSE}
+#자료 불러오기 
+#자료를 불러올 때, sheet 1의 앞의 세 줄을 빼고 가져도도록 함.
+#col_type으로 시군구는 text(문자)로, 미세먼지 농도는 numeric(정수)로 나타내도록 지정함.
+library(readxl)
+year<-read_excel("C:\\Users\\aldo9\\OneDrive\\바탕 화면\\R 연습\\2019년 9월.xls", col_types=c('text', 'numeric'), sheet=1, na="-", skip=3)
+
+#문서의 형태에 상관없이 테이블을 만들어 보여준다.
+knitr::kable(head(year), digits = 4)
+
+#lastyear의 초미세먼지 자료의 요약을 해 보여준다.
+summary(year)
+  barplot(year$미세먼지농도, col="cornflowerblue", beside=TRUE, names=(year$시군구), las=2, ylim=c(0,25), ylab="미세먼지 농도", main="시도별 초미세먼지")
+```
+  
+2.2018년/2019년 9월 23일의 초미세먼지 자료 시각화   
+
+  - 2018년 9월 23일 초미세먼지 자료의 시각화 (단계구분도)    
+  - 아래 자료를 보면 부산광역시와 울산광역시, 경상북도와 제주특별 자치도의 색이 짙게 나타나있다.
+```{r lastyear_M, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE}
+#우리나라 시도 지도(shp파일) 불러오기
+#아래는 shp파일을 가져오기 위한 패키지임.
+library(raster) 
+library(rgeos)
+library(sp) 
+library(maptools) 
+library(rgdal)
+library(GISTools)
+
+sig_map <- shapefile('C:/Users/aldo9/OneDrive/바탕 화면/R 연습/시도경계지도/TL_SCCO_CTPRVN.shp',
+                     encoding="CP949")
+
+ogrInfo(dsn ="C:/Users/aldo9/OneDrive/바탕 화면/R 연습",
+        layer="TL_SCCO_CTPRVN")
+
+shp1 <- readOGR(dsn = "C:/Users/aldo9/OneDrive/바탕 화면/R 연습", 
+                layer = "TL_SCCO_CTPRVN",
+                stringsAsFactors = FALSE)
+
+#시도의 지도(shp)파일과 lastyear데이터를 결합(merge)
+#(key값을 시군구로 지정)
+
+shp1$CTP_KOR_NM_1 =paste0(substring(shp1$CTP_KOR_NM, 1,4),"0")
+shp2 <- merge(shp1 ,lastyear, by.x="CTP_KOR_NM", by.y="시군구")
+shp2@data$미세먼지농도[is.na(shp2@data$미세먼지농도)] = 0
+
+#Rmapshaper로 지도를 단순화 시키기 
+library(rmapshaper)
+shp2 <- ms_simplify(shp2)
+
+##GISTools이용하여 지도 위에 파랑색으로 단계구분도 그리기.
+library(ggplot2)
+library(maptools)
+library(rgeos)
+library(GISTools)
+library(RColorBrewer)
+
+AREA2.shades <-shading(c(0,10,15,20,25) , cols =brewer.pal(5, "Blues"))
+
+choropleth(shp2, v=shp2$미세먼지농도, AREA2.shades)
+
+choro.legend(1200000, 1700000, AREA2.shades , under= "<=" , over = ">", between = "~") 
+
+```
+
+        
+  -2019년 9월 23일 초미세먼지 자료의 시각화 (단계구분도)  
+  -아래 자료를 보면 17개의 시군구의 초미세먼지 수치가 모두 0~10사이로 똑같은 색을 띄고 있다.
+    
+```{r year_M, echo=FALSE, message=FALSE, warning=FALSE}
+#우리나라 시도 지도(shp파일) 불러오기
+#아래는 shp파일을 가져오기 위한 패키지임.
+library(raster) 
+library(rgeos)
+library(sp) 
+library(maptools) 
+library(rgdal)
+library(GISTools)
+
+sig_map <- shapefile('C:/Users/aldo9/OneDrive/바탕 화면/R 연습/시도경계지도/TL_SCCO_CTPRVN.shp',
+                     encoding="CP949")
+
+ogrInfo(dsn ="C:/Users/aldo9/OneDrive/바탕 화면/R 연습",
+        layer="TL_SCCO_CTPRVN")
+
+shp1 <- readOGR(dsn = "C:/Users/aldo9/OneDrive/바탕 화면/R 연습", 
+                layer = "TL_SCCO_CTPRVN",
+                stringsAsFactors = FALSE)
+
+#시도의 지도(shp)파일과 lastyear데이터를 결합(merge)
+#(key값을 '시군구'로 지정)
+shp1$CTP_KOR_NM_1 =paste0(substring(shp1$CTP_KOR_NM, 1,4),"0")
+shp2 <- merge(shp1 ,year, by.x="CTP_KOR_NM", by.y="시군구")
+shp2@data$미세먼지농도[is.na(shp2@data$미세먼지농도)] = 0
+
+#Rmapshaper로 지도를 단순화 시키기 
+library(rmapshaper)
+shp2 <- ms_simplify(shp2)
+
+#GISTools이용하여 지도 위에 파랑색으로 단계구분도 그리기.
+library(ggplot2)
+library(maptools)
+library(rgeos)
+library(GISTools)
+library(RColorBrewer)
+
+AREA2.shades <-shading(c(0,10,15,20,25) , cols =brewer.pal(5, "Blues"))
+choropleth(shp2, v=shp2$미세먼지농도, AREA2.shades); choro.legend(1200000, 1700000, AREA2.shades , under= "<=" , over = ">", between = "~") 
+
+```
+  
+  
+    
+3. 2018/2019년 9월의 전체 자료통계  
+-2018년/2019년 9월 자료통계    
+```{r year_a, warning=FALSE, message=FALSE, echo=FALSE}
+library("readxl")
+    lastyear_a <- read_excel("C:\\Users\\aldo9\\OneDrive\\바탕 화면\\R 연습\\2018년 9월_전체.xls", col_types=c('text', rep('numeric',17)), sheet=1, skip=3)
+    lastyear_a = lastyear_a[nrow(lastyear_a):1,]
+    
+    
+    year_a <- read_excel("C:\\Users\\aldo9\\OneDrive\\바탕 화면\\R 연습\\2019년 9월_전체.xls", col_types=c('text', rep('numeric',17)), sheet=1, skip=3)
+    year_a = year_a[nrow(year_a):1,]
+    
+#문서의 형태에 상관없이 테이블을 만들어 보여준다.
+    knitr::kable(head(lastyear_a), digits = 4)
+    knitr::kable(head(year_a), digits = 4)
+
+    x1 = apply(lastyear_a[,-1], 2, function(x) c(mean(x), min(x), max(x), sum(x[!is.na(x)]>=35)))
+    round (x1, digits = 0)
+    x1=t(x1)
+    
+    x2 = apply(year_a[,-1], 2, function(x) 
+      c(mean(x, na.rm=T), min(x, na.rm=T), max(x, na.rm=T), sum(x[!is.na(x)]>=35)))
+       round (x2, digits = 0)
+       x2=t(x2)
+    
+    sido = row.names(x2)
+    
+    #X는 뒤에서 시각화를 할 때 사용
+    X = data.frame(sido, cbind(x1, x2), stringsAsFactors = F)
+    row.names(X) = NULL
+    names(X)[-1] = paste(
+      rep(c("18년9월", "19년9월"), each=4),
+    rep(c("평균", "최저", "최고", "35이상"), 2), sep="_")
+    
+     knitr::kable(head(X), digits = 4)
+    ```
+
+
+4. 2018/2019년 9월의 전체 자료 시각화   
+  
+-자료 요약 ( boxplot )  
+  
+- 자료를 보면 35를 넘는 초미세먼지량이 2018년도보다 2019년에 더 늘어났다. 또, box모양이 더욱 길어지고 수염도 더 길어졌음을 볼 수 있다. 
+```{r su, warning=FALSE, message=FALSE, echo=FALSE}
+
+boxplot(lastyear_a[,-1], col="blue",las=2, main="2018년 9월 지역별 초미세먼지량")
+    abline(h=35, col="red")
+    
+boxplot(year_a[,-1], col="blue",las=2, main="2019년 9월 지역별 초미세먼지량")
+    abline(h=35, col="red")
+```
+  
+-2018년/2019년 9월의 시계열그래프   
+  
+  
+- 시계열 그래프를 보면 우선 2018년 9월 15일~22일 사이 초 미세먼지 농도가 급격히 높아졌다 떨어지는 것을 볼 수 있고, 2019년 9월 22일~28일 사이 급격히 높아지는 것을 볼 수 있다.
+
+```{r tsg, echo=FALSE, message=FALSE, warning=FALSE}
+     ts.plot(lastyear_a[,-1], col=1:17, gpars=list(xaxt="n"), xlab="")
+    axis(1, at=c(1, 8, 15, 22, 28), labels=lastyear_a$날짜[c(1, 8, 15, 22, 28)], las=1)
+    legend("topleft", legend=names(lastyear_a)[-1], col=1:17, lty=1)
+    abline(h=35, col="red")
+
+    
+ts.plot(year_a[,-1], col=1:17, gpars=list(xaxt="n"), xlab="")
+  axis(1, at=c(1, 8, 15, 22, 28), labels=year_a$날짜[c(1, 8, 15, 22, 28)], las=1)
+    legend("topleft", legend=names(year_a)[-1], col=1:17, lty=1)
+    abline(h=35, col="red")
+
+    ```
+  
+   
+  
+  
+1.월 평균 초미세먼지량의 비교  
+-2018년의 평균을 보자면, 어느지역이 높다고 얘기할 수 있을 정도로 그래프의 차이가 나는데, 2019년도의 평균을 보면 거의 모든 지역이 비슷하게 분포되어있는 것을 볼 수 있다. 또 울산과 강원지역이 전년도보다 초미세먼지량이 줄어들었다고 할 수 있다. 
+
+     ```{r mapplease, echo=FALSE, message=FALSE, warning=FALSE, fig.width=17, fig.height=10}
+        #우리나라 시도 지도(shp파일) 불러오기
+        #아래는 shp파일을 가져오기 위한 패키지임.
+        library(rgdal)
+        library(GISTools)
+        library(rmapshaper)
+        
+         shp01 <- readOGR(dsn = "C:/Users/aldo9/OneDrive/바탕 화면/R 연습", 
+                     layer = "TL_SCCO_CTPRVN",
+                    stringsAsFactors = FALSE)
+    
+        #Rmapshaper로 지도를 단순화 시키기
+        shp11 <- ms_simplify(shp01, keep = 0.001, weighting = 0.5)
+        shp11 <- ms_filter_islands(shp11, min_area=10^7)
+        # save(shp1, file="shp1.Rdata")
+        # load(file="shp1.Rdata")
+        shp11@data$CTP_KOR_NM = substr(gsub("[청상라]","", shp11@data$CTP_KOR_NM), 1,2)    
+        
+        #시도의 지도(shp)파일과 lastyear데이터를 결합(merge)
+        #(key값을 sido로 지정)
+      
+        shp21 <- merge(shp11 , X , by.x="CTP_KOR_NM", by.y="sido")
+    #    plot(shp2)
+                    
+         ##GISTools이용하여 지도 위에 파랑색으로 단계구분도 그리기.
+         library(ggplot2)
+         library(maptools)
+         library(rgeos)
+         library(GISTools)
+         library(RColorBrewer)
+         
+         AREA21.shades <-auto.shading(c(0,10,20,30,40,50,60) , cols =brewer.pal(8,"Greens"))
+          par(mfrow=c(1,2))
+            
+         choropleth(shp21, v=shp21$`18년9월_평균`, AREA21.shades, main="18년 9월 평균")
+          choro.legend (1100000, 1600000, AREA21.shades , under= "under" , over = "over", between = "to") 
+        
+          choropleth(shp21, v=shp21$`19년9월_평균`, AREA21.shades, main="19년 9월 평균")
+          choro.legend(1100000, 1600000, AREA21.shades , under= "<=" , over = ">", between = "~") 
+        ```
+
+
+```{r map2_mean, echo=FALSE, message=FALSE, warning=FALSE, fig.width=17, fig.height=10}    
+ barplot(X$`18년9월_평균`, names.arg=X$sido,col="blue", main="2018년 9월 평균 초미세먼지량", las=2)
+     
+     barplot(X$`19년9월_평균`, names.arg=X$sido, col="skyblue", main="2019년 9월 평균 초미세먼지량", las=2)
+     
+```
+
+1. 2018년과 2019년 9월 최대 초미세먼지량의 비교  
+
+  -월 최대 미세먼지량은 2018년도엔 울산, 부산, 대구순으로 높았지만, 2019년도에 들어서는 강원을 제외하고 거의 대부분이 높아졌으며, 충남,인천, 전북 순으로 월 최대 초미세먼지량이 높다.  
+    
+    
+      ```{r mapplease1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=17, fig.height=10}
+              par(mfrow=c(1,2))
+              choropleth(shp21, v=shp21$`18년9월_최고`, AREA21.shades, main="18년 9월 최대 초미세먼지")
+              choro.legend(1200000, 1700000, AREA21.shades , under= "<=" , over = ">", between = "~") 
+          
+              choropleth(shp21, v=shp21$`19년9월_최고`, AREA21.shades, main="19년 9월 최대 초미세먼지")
+              choro.legend(1200000, 1700000, AREA21.shades , under= "<=" , over = ">", between = "~") 
+      ```
+      
+      
+```{r map2_max, echo=FALSE, message=FALSE, warning=FALSE, fig.width=17, fig.height=10}
+    
+barplot(X$`18년9월_최고`, names.arg=X$sido,col="blue", main="2018년 9월 최대 초미세먼지량", las=2)
+    
+barplot(X$`19년9월_최고`, names.arg=X$sido,col="skyblue", main="2019년 9월 최대 초미세먼지량", las=2)
+```
+    
+1. 2018년과 2019년 기준초과 일수의 지역별 비교  
+
+-2018년 9월엔 부산과 울산이 기준초과 1일 (총 2개의 시도)을 하였고, 2019년도엔 인천과 광주, 울산과 경기, 충북과 충남지역이 기준초과 1일, 전북 지역이 2일(총 7개의 시도)을 기준초과하였다.  
+  
+  
+      ```{r mapplease2, echo=FALSE, message=FALSE, warning=FALSE, fig.width=17, fig.height=10}
+              par(mfrow=c(1,2))
+              AREA2.shades <-shading(c(1, 2, 5, 10, 20) , cols =brewer.pal(8, "Greens"))
+              choropleth(shp21, v=shp21$`1월_35이상`, AREA21.shades, main="18년 9월 기준치 이상 일수")
+              choro.legend(1200000, 1700000, AREA21.shades , under= "<=" , over = ">", between = "~") 
+          
+              choropleth(shp21, v=shp21$`9월_35이상`, AREA21.shades, main="19년 9월 기준치 이상 일수")
+              choro.legend(1200000, 1700000, AREA21.shades , under= "<=" , over = ">", between = "~") 
+      ```
+    
+      
+```{r map2_over, echo=FALSE, message=FALSE, warning=FALSE, fig.width=17, fig.height=10}    
+ barplot(X$`18년9월_35이상`, names.arg=X$sido,col="blue", main="2018년 9월 기준초과 초미세먼지량 일수", las=2)
+     
+barplot(X$`19년9월_35이상`, names.arg=X$sido, col="skyblue", main="2019년 9월 기준초과 초미세먼지량 일수", las=2)
+```
+  
+
+    
+## 3.결과요약 및 시사점 
+  1. 결과  
+  
+  1.1 2018년 9월 23일의 시도별 초미세먼지 수치가 2019년 9월 23일의 시도별 초미세먼지의 농도보다 대체적으로 높은 수치를 가지고 있다.  
+    또, 2018년과 2019년 9월의 전체 자료를 보면 시도별 초미세먼지량의  평균을 보면 부산, 울산,충남이 눈에 띄도록 줄었고, 다른 몇몇 시도들도 이 조금 줄어들었음을 볼 수 있다.  
+  
+   1.2 2019년 9월 23일에 비해 2018년 9월 23일의 서울과 충남부분의 초미세먼지 수치는 크게 달라지지 않았지만, 다른 지역은 2018년도에 비해 초미세먼지 수치가 많이 줄어들었음을 볼 수 있다.  또 2018년과 2019년 9월의 전체 자료(평균)를 보면 대체적으로 높아져있는 것을 볼 수 있다. 이는 어떤 자료를 가져오는가에 따라 달라지기에 주의해야한다. 
+    
+  1.3  초미세먼지 수치가 높게 나타나는 이유는 이 부근에 공업지역이 몰려있거나, 노후경유차 혹은 경유자동차가 많이 다니기 때문이라고 생각한다. 이와 반대로 수치가 낮게 나타나는 이유는 이 부근이 청정지역이거나, 노후경유차 혹은 경유자동차자 적게 다니기 때문이라고 생각한다.
+      
+
+  2. 시사점  
+      2.1 두 자료의 수치가 차이나는 이유는 초미세먼지를 줄이기 위해 경유차를 없애거나, 유연탄 화력발전소를 조기 폐쇄하고 신재생을 하는 등 국가의 투자 및 초미세먼지 저감을 위한 노력과 개개인의 노력이 있었기 때문이라고 생각한다.  
+        
+      2.2 그렇기에 우리는 초미세먼지를 저감시키기 위해 합리적 도시계획 및 도시녹화를 중요시하고 초미세먼지 오염 관련 법률 및 규정을 수립하고 개정하여 법 진행을 엄격히 하거나, 개인적으로 등산이나 조깅을 산책이나 단기산행으로 바꾸며 초미세 먼지 농도가 짙을 때는 최대한 장기 외출을 삼가하도록 하여야한다. 초미세먼지를 줄이고, 이에대한 질병을 피하기 위함이다.
+
+
+## 4.참고문헌
+
+-김진석 교수님 [Bigdata Lab.at DGU]   
+{http://datamining.dongguk.ac.kr/lectures/EDA/_book/index.html}
+
+-에너지 경제 : 평균추구가 갖는 모순, 그리고 초미세먼지 정책  
+{http://www.ekn.kr/news/article.html?no=457122}  
+
+
+## 5.부록
+
+    
+    
+1.2018년/2019년 9월 23일의 코드
+```{r ref.label="lastyear", eval=FALSE, echo=TRUE}
+lastyear
+```
+
+```{r ref.label="year", eval=FALSE, echo=TRUE}
+year
+```
+  
+  
+1.1 시각화 코드  
+```{r ref.label="lastyear_M", eval=FALSE, echo=TRUE}
+lastyear_M
+```  
+
+```{r ref.label="year_M", eval=FALSE, echo=TRUE}
+year_M
+```  
+
+  
+2.2018년/2019년 9월 전체 자료 코드
+
+```{r ref.label="year_a", eval=FALSE, echo=TRUE}
+year_a
+```
+  
+2.1 시각화 코드
+```{r ref.label="su", eval=FALSE, echo=TRUE}
+su
+```
+
+```{r ref.label="tsg", eval=FALSE, echo=TRUE}
+tsg
+```
+
+
+```{r ref.label="map2_mean", eval=FALSE, echo=TRUE}
+map2_mean
+```
+```{r ref.label="map2_max", eval=FALSE, echo=TRUE}
+map2_max
+```
+```{r ref.label="map2_over", eval=FALSE, echo=TRUE}
+map2_over
+```
+
+```{r ref.label="mapplease", eval=FALSE, echo=TRUE}
+mapplease
+```
+```{r ref.label="mapplease1", eval=FALSE, echo=TRUE}
+mapplease1
+```
+```{r ref.label="mapplease2", eval=FALSE, echo=TRUE}
+mapplease2
+```
