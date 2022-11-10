@@ -192,8 +192,6 @@ G5<-aggregate(Customer.Lifetime.Value ~Location.Code, data=data,
 G5 = data.frame(G5[,1], G5[,2]) 
 names(G5)[1] = "-"
 kable(G5)
-
-
 ```
   
 1. 결혼 여부에 따른 고객생애 가치      
