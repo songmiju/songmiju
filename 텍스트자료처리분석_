@@ -124,6 +124,7 @@ review = open ("review.txt", 'r', encoding= 'utf-8') #읽기전용('r': read)으
 reviews = review.read()
 print(reviews)
 
+
 #불용어를 제거한 후 DTM 만들기
 #사용자 정의 불용어 사용 
 
