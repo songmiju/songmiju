@@ -1,5 +1,5 @@
--초미세먼지 데이터 분석
--r studio (rmd)
+- 초미세먼지 데이터 분석
+- r studio (rmd)
 
 ## 1.서론: 시도별 초미세먼지 데이터 소개 및 분석 방향  
 ```{r setup, include=FALSE}
