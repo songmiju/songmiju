@@ -1,0 +1,3290 @@
+- R
+소방화재 EDA
+# 2017 소방화재 EDA
+
+# 파일불러오기
+
+raw_data <- read.csv('소방청_화재발생 주소정보_20171231.csv',header = T)
+
+# 2017 대구시 화재 추출 데이터 차원확인
+dim(deagu_fire)
+
+
+# 1. 대구시 화재유형 확인 
+tot_deagu_frame<- table(deagu_fire  화재유형)
+class(tot_deagu_frame)
+
+# 2. 대구시 화재유형 데이터 데이터프레임 생성 
+tot_deagu_frame1<- as.data.frame(tot_deagu_frame)
+names(tot_deagu_frame1) <- c('화재유형','화재발생빈도')
+tot_deagu_frame1
+
+# 3. ggplot2 그래프 만들기 
+
+gggplot(tot_deagu_frame1) +
+  aes(x = 화재유형, weight = 화재발생빈도) +
+  geom_bar(fill = "#112446") +
+  labs(
+    y = "화재발생빈도",
+    title = "대구시 화재유형별 화재발생빈도",
+    caption = "<자료출저: 소방청,
+   2017년 화재발생주요정보>"
+  ) +
+  theme_light() +
+  theme(
+    plot.title = element_text(size = 20L,
+                              face = "bold",
+                              hjust = 0.5),
+    plot.caption = element_text(size = 10L),
+    axis.title.y = element_text(face = "italic")
+  ) +
+  ylim(0L, 1200L)
+
+
+# 대구시 유형별 화재건수
+
+fire_money_summarise<- deagu_fire %>% 
+  select(X119안전센터,재산피해소계) %>% 
+  group_by(X119안전센터) %>% 
+  summarise(sum_money = sum(재산피해소계),
+            mean_money=mean(재산피해소계)
+            )
+View(fire_money_summarise)
+
+
+# 유형별 화재건수 추출
+deagu_fire <- raw_data %>% 
+  filter(시도본부 == '대구소방안전본부')
+  dim(deagu_fire)
+  
+deagu_contrs <- deagu_fire %>% 
+  select(화재유형,장소중분류,개수) %>% 
+  filter(화재유형 =='건축,구조물')
+
+View(head(deagu_contrs,2))
+
+# 장소중분류 목록 확인 
+
+table(deagu_contrs$장소중분류)
+
+# 장소중분류별 화재건수 상위5건 요약
+
+deagu_contrs_1 <- deagu_contrs %>% 
+  filter(장소중분류 %in% c('단독주택','공동주택','공장시설','음식점','기타건축물')) %>% 
+  group_by(장소중분류) %>% 
+  summarise(개수 = sum(개수)) %>% 
+  arrange(desc(개수))   # 정렬
+
+View(deagu_contrs_1)
+
+# ggplot2
+
+ggplot(deagu_contrs_1) +
+  aes(x = 장소중분류, weight = 개수) +
+  geom_bar(fill = "#112446") +
+  labs(x = "장소중분류", y = "화재발생빈도") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(size = 13L),
+    axis.title.x = element_text(size = 13L)
+  ) +
+  ylim(0L, 250L)
+
+# 안전센터별 화재피해액 총합, 평균 데이터 프레임 저장 
+
+class(fire_money_summarise)
+fire_money_summarise1<- as.data.frame(fire_money_summarise)
+class(fire_money_summarise1)
+names(fire_money_summarise1) <- c('119안전센터','화재피해액총합','화재피해액평균')
+
+View(fire_money_summarise1)
+
+# 최종산출물 : fire_money_summarise1
+
+write.csv(fire_money_summarise1,'안전센터별 화재피해액 총합, 평균.csv')
+
+# 안전센터글자수 조정한 파일 불러오기 
+
+deagu_fire_final<- read.csv('안전센터별 화재피해액 총합, 평균.csv', header = T)
+head(deagu_fire_final,2)
+
+# 안전센터별 화재피해액 총합 그래프 그리기 
+
+dim(deagu_contrs)
+deagu_contrs_1 <- deagu_contrs %>% 
+  filter(장소중분류 %in% c('단독주택','공동주택','공장시설','음식점','기타건축물')) %>% 
+  group_by(장소중분류) %>% 
+  summarise(개수 = sum(개수)) %>% 
+  arrange(desc(개수))   # 정렬
+
+
+
+# 화재피해액 평균 그래프 그리기 
+
+ggplot(deagu_fire_final) +
+  aes(x = X119안전센터, weight = 화재피해액평균) +
+  geom_bar(fill = "#112446") +
+  labs(
+    x = "대구광역시 119안전센터",
+    y = "화재피해액",
+    caption = "<자료출저 : 소방청>"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.caption = element_text(size = 20L,
+                                face = "italic")
+  )
+
+
+# 소방서별 재산피해소계 총합, 평균 계산
+
+deagu_fire_summarise<- deagu_fire %>% 
+  select(소방서,재산피해소계) %>% 
+  group_by(소방서) %>% 
+  summarise(sum_money = sum(재산피해소계),
+            mean_money=mean(재산피해소계)) %>% 
+  arrange(desc(sum_money))   # 정렬
+
+View(deagu_fire_summarise)
+class(deagu_fire_summarise)
+
+names(deagu_fire_summarise) <- c('소방서','화재피해액 총계','화재피해액 평균')
+deagu_fire_summarise
+
+View(deagu_fire_summarise)
+deagu_fire_summarise
+
+# 소방서별 화재피해액 총합
+
+# ggplot
+ggplot(deagu_money) +
+  aes(x = 소방서, weight = 재산피해평균) +
+  geom_bar(fill = "#112446") +
+  labs(y = "화재피해액(천원)") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(size = 13L),
+    axis.title.x = element_text(size = 13L)
+  )
+
+# ggplot 총합
+
+ggplot(deagu_money) +
+  aes(x = 소방서, weight = 재산피해총합) +
+  geom_bar(fill = "#112446") +
+  labs(y = "화재피해엑(천원)") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(size = 13L),
+    axis.title.x = element_text(size = 13L)
+  )
+
+#  소방서별 동원인력 평균 
+deagu_employee <- deagu_fire %>% 
+  select(소방서,동원인력소계,인명피해.명.소계) %>% 
+  group_by(소방서) %>% 
+  summarise(동원인력평균 = mean(동원인력소계),
+            인명피해총합  = sum(인명피해.명.소계),
+            인명피해총합1  = mean(인명피해.명.소계))
+
+View(deagu_employee)
+
+# 필터 데이터 저장 및 불러오기 
+
+write.csv(deagu_employee,'소방서별 동원인력 평균, 인명피해총합.csv')
+deagu_employee <- read.csv('소방서별 동원인력 평균, 인명피해총합.csv',header = T)
+
+# 동원인력 평균 반올림 
+
+deagu_employee$동원인력평균 <-round(deagu_employee$동원인력평균,2) 
+View(deagu_employee)
+
+# ggplot
+
+ggplot(deagu_employee) +
+  aes(x = 소방서, weight = 동원인력평균) +
+  geom_bar(fill = "#112446") +
+  labs(y = "동원인력(명)") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(size = 13L),
+    axis.title.x = element_text(size = 13L)
+  )
+
+# 소방서별 인명피해(사망,부상)
+
+ggplot(deagu_employee) +
+  aes(x = 소방서, weight = 인명피해총합) +
+  geom_bar(fill = "#112446") +
+  labs(y = "인명피해(사망,부상)") +
+  theme_bw() +
+  theme(
+    axis.title.y = element_text(size = 13L),
+    axis.title.x = element_text(size = 13L)
+  )
+
+# 상관관계 분석
+
+raw_data %>% 
+  select(사망,
+           부상,
+           인명피해.명.소계,
+           재산피해소계,
+           시도본부,
+           소방서,
+           X119안전센터,
+           화재발생년월일,
+           접수일시,
+           출동일시,
+           도착일시,
+           초진일시,
+           완진일시,
+           귀소일시,
+           출동소요시간,
+           화재진압시간,
+           시도,
+           소방서거리...,
+           시군구,
+           읍면동,
+           건물층수.지상.,
+           건물층수.지하.,
+           화재유형,
+           발화요인대분류,
+           동력원대분류,
+           부동산,
+           동산,
+           화재피해경감액,
+           부동산경감,
+           동산경감,
+           인명구조.명.,
+           유도대피.명.,
+           동원인력소계,
+           소방동원명수,
+           일반직동원명수,
+           동원장비소계,
+           펌프물탱크,
+           구조,
+           구급,
+           헬기,
+           보험금액.천원.,
+           날씨,
+           습도,
+           온도...,
+           풍속,
+           건물구조식,
+           층수.지상.,
+           층수.지하.,
+           연면적,
+           바닥면적,
+           안전센터거리)->tot_deagu_data1
+
+View(tot_deagu_data1)
+table(tot_deagu_data1  시도본부)
+
+# 대구 추출
+filtered_deagu_data<- tot_deagu_data1 %>%
+  filter(시도본부 == '대구소방안전본부')
+
+View(head(filtered_deagu_data,2))
+
+# 추출데이터 : filtered_deagu_data
+
+
+head(filtered_deagu_data,1)
+filtered_deagu_data1<- filtered_deagu_data %>% 
+    select(사망,
+           부상,
+           인명피해.명.소계,
+           재산피해소계,
+           소방서거리...,
+           건물층수.지상.,
+           건물층수.지하.,
+           부동산,
+           동산,
+           화재피해경감액,
+           부동산경감,
+           동산경감,
+           인명구조.명.,
+           유도대피.명.,
+           동원인력소계,
+           소방동원명수,
+           동원장비소계,
+           펌프물탱크,
+           구조,
+           구급,
+           습도,
+           온도...,
+           층수.지상.,
+           층수.지하.,
+           연면적,
+           바닥면적,
+           안전센터거리)
+
+# 데이터 분리
+filtered_deagu_data1
+filtered_deagu_data2 <- filtered_deagu_data1
+
+str(filtered_deagu_data1)
+
+# 정제 데이터 결측치 확인(1번자료) 
+table(is.na(filtered_deagu_data1))
+
+# 결측치 모두 제거시 45x29 데이터 상관분석(1번자료)
+filtered_deagu_data1_1<- na.omit(filtered_deagu_data1)
+install.packages('corrplot')
+corrplot(cor(filtered_deagu_data1_1), method="circle")
+dim(filtered_deagu_data1)
+dim(filtered_deagu_data1_1)
+
+# 수치형데이터 저장 
+write.csv(filtered_deagu_data1,'2017년 소방통계 수치형 자료 모음.csv')
+
+# 결측치를 평균값으로 대체하기(ifelse를 이용한 평균값 넣기)
+
+filtered_deagu_data2  사망 <- ifelse( !is.na(filtered_deagu_data1  사망), filtered_deagu_data1  사망, round(mean(filtered_deagu_data1  사망, na.rm=T), 2))
+filtered_deagu_data2  부상 <- ifelse( !is.na(filtered_deagu_data1  부상), filtered_deagu_data1  부상, round(mean(filtered_deagu_data1  부상, na.rm=T), 2))
+filtered_deagu_data2  인명피해.명.소계 <- ifelse( !is.na(filtered_deagu_data1  인명피해.명.소계), filtered_deagu_data1  인명피해.명.소계, round(mean(filtered_deagu_data1  인명피해.명.소계, na.rm=T), 2))
+filtered_deagu_data2  재산피해소계 <- ifelse( !is.na(filtered_deagu_data1  재산피해소계), filtered_deagu_data1  재산피해소계, round(mean(filtered_deagu_data1  재산피해소계, na.rm=T), 2))
+filtered_deagu_data2  소방서거리... <- ifelse( !is.na(filtered_deagu_data1  소방서거리...), filtered_deagu_data1  소방서거리..., round(mean(filtered_deagu_data1  소방서거리..., na.rm=T), 2))
+filtered_deagu_data2  건물층수.지상. <- ifelse( !is.na(filtered_deagu_data1  건물층수.지상.), filtered_deagu_data1  건물층수.지상., round(mean(filtered_deagu_data1  건물층수.지상., na.rm=T), 2))
+filtered_deagu_data2  건물층수.지하. <- ifelse( !is.na(filtered_deagu_data1  건물층수.지하.), filtered_deagu_data1  건물층수.지하., round(mean(filtered_deagu_data1  건물층수.지하., na.rm=T), 2))
+filtered_deagu_data2  부동산 <- ifelse( !is.na(filtered_deagu_data1  부동산), filtered_deagu_data1  부동산, round(mean(filtered_deagu_data1  부동산, na.rm=T), 2))
+filtered_deagu_data2  동산 <- ifelse( !is.na(filtered_deagu_data1  동산), filtered_deagu_data1  동산, round(mean(filtered_deagu_data1  동산, na.rm=T), 2))
+filtered_deagu_data2  화재피해경감액 <- ifelse( !is.na(filtered_deagu_data1  화재피해경감액), filtered_deagu_data1  화재피해경감액, round(mean(filtered_deagu_data1  화재피해경감액, na.rm=T), 2))
+filtered_deagu_data2  부동산경감 <- ifelse( !is.na(filtered_deagu_data1  부동산경감), filtered_deagu_data1  부동산경감, round(mean(filtered_deagu_data1  부동산경감, na.rm=T), 2))
+filtered_deagu_data2  동산경감 <- ifelse( !is.na(filtered_deagu_data1  동산경감), filtered_deagu_data1  동산경감, round(mean(filtered_deagu_data1  동산경감, na.rm=T), 2))
+filtered_deagu_data2  인명구조.명. <- ifelse( !is.na(filtered_deagu_data1  인명구조.명.), filtered_deagu_data1  인명구조.명., round(mean(filtered_deagu_data1  인명구조.명., na.rm=T), 2))
+filtered_deagu_data2  유도대피.명. <- ifelse( !is.na(filtered_deagu_data1  유도대피.명.), filtered_deagu_data1  유도대피.명., round(mean(filtered_deagu_data1  유도대피.명., na.rm=T), 2))
+filtered_deagu_data2  동원인력소계 <- ifelse( !is.na(filtered_deagu_data1  동원인력소계), filtered_deagu_data1  동원인력소계, round(mean(filtered_deagu_data1  동원인력소계, na.rm=T), 2))
+filtered_deagu_data2  소방동원명수 <- ifelse( !is.na(filtered_deagu_data1  소방동원명수), filtered_deagu_data1  소방동원명수, round(mean(filtered_deagu_data1  소방동원명수, na.rm=T), 2))
+filtered_deagu_data2  동원장비소계 <- ifelse( !is.na(filtered_deagu_data1  동원장비소계), filtered_deagu_data1  동원장비소계, round(mean(filtered_deagu_data1  동원장비소계, na.rm=T), 2))
+filtered_deagu_data2  펌프물탱크 <- ifelse( !is.na(filtered_deagu_data1  펌프물탱크), filtered_deagu_data1  펌프물탱크, round(mean(filtered_deagu_data1  펌프물탱크, na.rm=T), 2))
+filtered_deagu_data2  구조 <- ifelse( !is.na(filtered_deagu_data1  구조), filtered_deagu_data1  구조, round(mean(filtered_deagu_data1  구조, na.rm=T), 2))
+filtered_deagu_data2  구급 <- ifelse( !is.na(filtered_deagu_data1  구급), filtered_deagu_data1  구급, round(mean(filtered_deagu_data1  구급, na.rm=T), 2))
+filtered_deagu_data2  습도 <- ifelse( !is.na(filtered_deagu_data1  습도), filtered_deagu_data1  습도, round(mean(filtered_deagu_data1  습도, na.rm=T), 2))
+filtered_deagu_data2  온도... <- ifelse( !is.na(filtered_deagu_data1  온도...), filtered_deagu_data1  온도..., round(mean(filtered_deagu_data1  온도..., na.rm=T), 2))
+filtered_deagu_data2  층수.지상. <- ifelse( !is.na(filtered_deagu_data1  층수.지상.), filtered_deagu_data1  층수.지상., round(mean(filtered_deagu_data1  온도..., na.rm=T), 2))
+filtered_deagu_data2  층수.지하. <- ifelse( !is.na(filtered_deagu_data1  층수.지하.), filtered_deagu_data1  층수.지하., round(mean(filtered_deagu_data1  층수.지하., na.rm=T), 2))
+filtered_deagu_data2  연면적 <- ifelse( !is.na(filtered_deagu_data1  연면적), filtered_deagu_data1  연면적, round(mean(filtered_deagu_data1  연면적, na.rm=T), 2))
+filtered_deagu_data2  바닥면적 <- ifelse( !is.na(filtered_deagu_data1  바닥면적), filtered_deagu_data1  바닥면적, round(mean(filtered_deagu_data1  바닥면적, na.rm=T), 2))
+filtered_deagu_data2  안전센터거리 <- ifelse( !is.na(filtered_deagu_data1  안전센터거리), filtered_deagu_data1  안전센터거리, round(mean(filtered_deagu_data1  안전센터거리, na.rm=T), 2))
+
+write.csv(filtered_deagu_data2,'2017대구소방_평균대처법.csv')
+
+# 결측치 값확인(2번자료)-결측치 없음 
+
+head(filtered_deagu_data2,1)
+
+table(is.na(filtered_deagu_data2))
+corrplot(cor(filtered_deagu_data2), method="circle")
+
+View(filtered_deagu_data2)
+na.omitt_filtered_Deagu <- na.omit(filtered_deagu_data1)
+corrplot(cor(na.omitt_filtered_Deagu), method="number")
+
+corrplot(cor(na.omitt_filtered_Deagu), method="number")
+corrplot(cor(na.omitt_filtered_Deagu), method="circle")
+
+# asdf<- cor(asd, use = "all.obs", method = "pearson")
+
+##### 상관분석 최종정리 #####
+
+# 1. 결측치 전체제거
+
+corrplot(cor(filtered_deagu_data1_1), method="circle")
+
+# 2. 결측치 모두 평균값 대체 
+
+corrplot(cor(filtered_deagu_data2), method="circle")
+table(is.na(raw_data))
+
+# 안전센터별 평균출동시간에 차이가 있는가?  - anova 
+
+# 데이터 불러오기 - filtered_deagu_data1
+
+filtered_deagu_data1_1_1<- filtered_deagu_data %>% 
+  select(사망,
+           부상,
+           인명피해.명.소계,
+           재산피해소계,
+           소방서거리...,
+           건물층수.지상.,
+           건물층수.지하.,
+           부동산,
+           동산,
+           화재피해경감액,
+           부동산경감,
+           동산경감,
+           인명구조.명.,
+           유도대피.명.,
+           동원인력소계,
+           소방동원명수,
+           동원장비소계,
+           펌프물탱크,
+           구조,
+           구급,
+           습도,
+           온도...,
+           층수.지상.,
+           층수.지하.,
+           연면적,
+           바닥면적,
+           안전센터거리,
+           출동소요시간,
+           화재진압시간)
+
+View(filtered_deagu_data1)
+dim(filtered_deagu_data1_1_1)
+
+# 안전센터별 -> 평균출동시간 차이 
+
+class(filtered_deagu_data1_1_1  출동소요시간)
+class(filtered_deagu_data1_1_1  화재진압시간)
+
+filtered_deagu_data1_1_1  출동소요시간 <-  as.POSIXct(filtered_deagu_data1_1_1  출동소요시간,format =  '%H:%M:%S')
+filtered_deagu_data1_1_1  화재진압시간 <-  as.POSIXct(filtered_deagu_data1_1_1  화재진압시간,format =  '%H:%M:%S')
+
+# as.POSIXct(filtered_deagu_data1_1_1  출동소요시간,format =  '%H:%M:%S') format을 통해 원하는 형태로 출력 
+
+# 변환된 데이터 확인 
+
+class(filtered_deagu_data1_1_1  출동소요시간)
+class(filtered_deagu_data1_1_1  화재진압시간)
+View(filtered_deagu_data1_1_1)
+
+dim(filtered_deagu_data1_1_1)
+
+write.csv(filtered_deagu_data1_1_1,'2017_시간_형변환_소방.csv')
+
+
+# 전체데이터 결측치 제거 
+
+# 전체 데이터 호출 (raw_data)
+raw_cor_data<- raw_data %>% 
+  select(사망,
+           부상,
+           인명피해.명.소계,
+           재산피해소계,
+           소방서거리...,
+           건물층수.지상.,
+           건물층수.지하.,
+           부동산,
+           동산,
+           화재피해경감액,
+           부동산경감,
+           동산경감,
+           인명구조.명.,
+           유도대피.명.,
+           동원인력소계,
+           소방동원명수,
+           동원장비소계,
+           펌프물탱크,
+           구조,
+           구급,
+           습도,
+           온도...,
+           층수.지상.,
+           층수.지하.,
+           연면적,
+           바닥면적,
+           안전센터거리)
+
+# 전체 데이터 상관분석(na.omit)
+View(raw_cor_data)
+raw_cor_data1 <- na.omit(raw_cor_data)
+dim(raw_cor_data1)
+
+dim(raw_cor_data1)
+dim(filtered_deagu_data1_1)
+corrplot(cor(filtered_deagu_data1_1), method="circle")   # 대구시 모든 결측치 제거
+corrplot(cor(filtered_deagu_data2), method="circle")     # 대구시 평군대처법 
+corrplot(cor(raw_cor_data1), method="circle")            # 전국 모든 결측치 제거 
+
+
+# 안전센터별 평균출동시간 anova 진행
+
+# 원본데이터 호출 
+
+dim(raw_data)
+
+# 대구시 소방본부로 한정 
+library(dplyr)
+aov_deagu_fire <- raw_data %>% 
+  filter(시도본부 == '대구소방안전본부')
+
+dim(aov_deagu_fire)
+
+# 필요한 열만 추출 
+head(raw_data,1)
+aov_data<- aov_deagu_fire %>% 
+  select(소방서,
+         X119안전센터,
+          사망,
+           부상,
+           인명피해.명.소계,
+           재산피해소계,
+           소방서거리...,
+           건물층수.지상.,
+           건물층수.지하.,
+           부동산,
+           동산,
+           화재피해경감액,
+           부동산경감,
+           동산경감,
+           인명구조.명.,
+           유도대피.명.,
+           동원인력소계,
+           소방동원명수,
+           동원장비소계,
+           펌프물탱크,
+           구조,
+           구급,
+           습도,
+           온도...,
+           층수.지상.,
+           층수.지하.,
+           연면적,
+           바닥면적,
+           안전센터거리,
+         출동소요시간,
+         화재진압시간,
+         소방서거리...,
+         출동소요시간,
+         화재진압시간.초.)
+
+# 데이터 차원 확인 
+
+dim(aov_data)
+View(head(aov_data,2))
+
+# 중간값으로 대체 
+
+aov_data1 <- aov_data
+dim(aov_data1)
+
+aov_data1  사망 <- ifelse( !is.na(aov_data1  사망), aov_data1  사망, round(median(aov_data1  사망, na.rm=T), 2))
+aov_data1  부상 <- ifelse( !is.na(aov_data1  부상), aov_data1  부상, round(median(aov_data1  부상, na.rm=T), 2))
+aov_data1  인명피해.명.소계 <- ifelse( !is.na(aov_data1  인명피해.명.소계), aov_data1  인명피해.명.소계, round(median(aov_data1  인명피해.명.소계, na.rm=T), 2))
+aov_data1  재산피해소계 <- ifelse( !is.na(aov_data1  재산피해소계), aov_data1  재산피해소계, round(median(aov_data1  재산피해소계, na.rm=T), 2))
+aov_data1  소방서거리... <- ifelse( !is.na(aov_data1  소방서거리...), aov_data1  소방서거리..., round(median(aov_data1  소방서거리..., na.rm=T), 2))
+aov_data1  건물층수.지상. <- ifelse( !is.na(aov_data1  건물층수.지상.), aov_data1  건물층수.지상., round(median(aov_data1  건물층수.지상., na.rm=T), 2))
+aov_data1  건물층수.지하. <- ifelse( !is.na(aov_data1  건물층수.지하.), aov_data1  건물층수.지하., round(median(aov_data1  건물층수.지상., na.rm=T), 2))
+aov_data1  부동산 <- ifelse( !is.na(aov_data1  부동산), aov_data1  부동산, round(median(aov_data1  부동산, na.rm=T), 2))
+aov_data1  동산 <- ifelse( !is.na(aov_data1  동산), aov_data1  동산, round(median(aov_data1  동산, na.rm=T), 2))
+aov_data1  화재피해경감액 <- ifelse( !is.na(aov_data1  화재피해경감액), aov_data1  화재피해경감액, round(median(aov_data1  화재피해경감액, na.rm=T), 2))
+aov_data1  부동산경감 <- ifelse( !is.na(aov_data1  부동산경감), aov_data1  부동산경감, round(median(aov_data1  부동산경감, na.rm=T), 2))
+aov_data1  동산경감 <- ifelse( !is.na(aov_data1  동산경감), aov_data1  동산경감, round(median(aov_data1  동산경감, na.rm=T), 2))
+aov_data1  인명구조.명. <- ifelse( !is.na(aov_data1  인명구조.명.), aov_data1  인명구조.명., round(median(aov_data1  인명구조.명., na.rm=T), 2))
+aov_data1  유도대피.명. <- ifelse( !is.na(aov_data1  유도대피.명.), aov_data1  유도대피.명., round(median(aov_data1  유도대피.명., na.rm=T), 2))
+aov_data1  동원인력소계 <- ifelse( !is.na(aov_data1  동원인력소계), aov_data1  동원인력소계, round(median(aov_data1  동원인력소계, na.rm=T), 2))
+aov_data1  소방동원명수 <- ifelse( !is.na(aov_data1  소방동원명수), aov_data1  소방동원명수, round(median(aov_data1  소방동원명수, na.rm=T), 2))
+aov_data1  동원장비소계 <- ifelse( !is.na(aov_data1  동원장비소계), aov_data1  동원장비소계, round(median(aov_data1  동원장비소계, na.rm=T), 2))
+aov_data1  펌프물탱크 <- ifelse( !is.na(aov_data1  펌프물탱크), aov_data1  펌프물탱크, round(median(aov_data1  펌프물탱크, na.rm=T), 2))
+aov_data1  구조 <- ifelse( !is.na(aov_data1  구조), aov_data1  구조, round(median(aov_data1  구조, na.rm=T), 2))
+aov_data1  구급 <- ifelse( !is.na(aov_data1  구급), aov_data1  구급, round(median(aov_data1  구급, na.rm=T), 2))
+aov_data1  습도 <- ifelse( !is.na(aov_data1  습도), aov_data1  습도, round(median(aov_data1  습도, na.rm=T), 2))
+aov_data1  온도... <- ifelse( !is.na(aov_data1  온도...), aov_data1  온도..., round(median(aov_data1  온도..., na.rm=T), 2))
+aov_data1  층수.지상. <- ifelse( !is.na(aov_data1  층수.지상.), aov_data1  층수.지상., round(median(aov_data1  층수.지상., na.rm=T), 2))
+aov_data1  층수.지하. <- ifelse( !is.na(aov_data1  층수.지하.), aov_data1  층수.지하., round(median(aov_data1  층수.지하., na.rm=T), 2))
+aov_data1  연면적 <- ifelse( !is.na(aov_data1  연면적), aov_data1  연면적, round(median(aov_data1  연면적, na.rm=T), 2))
+aov_data1  바닥면적 <- ifelse( !is.na(aov_data1  바닥면적), aov_data1  바닥면적, round(median(aov_data1  바닥면적, na.rm=T), 2))
+aov_data1  안전센터거리 <- ifelse( !is.na(aov_data1  안전센터거리), aov_data1  안전센터거리, round(median(aov_data1  안전센터거리, na.rm=T), 2))
+aov_data1  출동소요시간 <- ifelse( !is.na(aov_data1  출동소요시간), aov_data1  출동소요시간, round(median(aov_data1  출동소요시간, na.rm=T), 2))
+aov_data1  화재진압시간 <- ifelse( !is.na(aov_data1  화재진압시간), aov_data1  화재진압시간, round(median(aov_data1  화재진압시간, na.rm=T), 2))
+
+dim(aov_data1)
+table(is.na(aov_data1))
+
+corrplot(cor(aov_data1), method="circle")
+
+View(aov_data1)
+
+# 열삭제 
+head(aov_data,1)
+aov_data2<- subset(aov_data1,select = -X119안전센터)
+aov_data3<- subset(aov_data2,select = -소방서)
+aov_data4<- subset(aov_data3,select = -출동소요시간)
+aov_data5<- subset(aov_data4,select = -화재진압시간)
+dim(aov_data3)
+head(aov_data2,1)
+
+
+View(aov_data3)
+
+# 중간값 넣은 상관관계 
+corrplot(cor(aov_data5), method="circle")
+
+# anova 
+
+table(is.na(aov_data1))
+
+aov_data1_1<- subset(aov_data1,select = -출동소요시간)
+aov_data1_2<- subset(aov_data1_1,select = -화재진압시간)
+
+table(is.na(aov_data1_2))
+dim(aov_data1_2)
+
+aov_data1_3<- subset(aov_data1_2,select = -X119안전센터)
+View(aov_data1_3)
+
+
+# 안전센터별로 묶기 
+
+write.csv(aov_data1_3,'2017_일원변량분석용.csv')
+aov_data1_4<- read.csv('2017_일원변량분석용.csv',header = T)
+
+View(aov_data1_4)
+
+aaa <- aov(재산피해소계~소방서,data=aov_data1_4)
+bbb <- aov(재산피해소계~X119안전센터,data=aov_data1_2)
+summary(aaa)
+summary(bbb)
+
+# bartlett.test(weight ~ group, data = data)
+
+# anova 대구시결과 소방서별, x119안전센터에 따른 재산피해소계의 차이는 없다라는 귀무가설을 채택함 
+
+# 소방서별 소방서 거리 출동시간 분산분석
+dim(aov_data1)
+
+aov(안전센터거리 ~X119안전센터,data=aov_data1)->time_anova1
+summary(time_anova1)  
+
+aov(소방서거리...~소방서 ,data=aov_data1)->time_anova2
+summary(time_anova2)  
+
+
+##########################################################################
+# 적어도소방서별/ 안전센터별 화재장소로부터 소방서 / 안전센터별 거리 차이가 있다(귀무가설을 기각)
+# 사후검정 실시
+############################################################################3
+# 분산분석 사후검정 실시(levenu등분산검정)
+##########################################
+# 정규성 / 등분산 가정 
+######################################
+##
+# 소방서별 소방서 거리 평균
+
+km_fire_point<-aov_data1 %>% 
+  group_by(소방서) %>% 
+  summarise(소방서거리= mean(소방서거리...))
+View(km_fire_point)  
+
+
+## ggplot 
+
+ggplot(km_fire_point) +
+  aes(x = 소방서, weight = 소방서거리) +
+  geom_bar(fill = "#112446") +
+  labs(
+    y = "화재현장평균거리",
+    title = "소방서별 화재현장 평균거리",
+    subtitle = "단위 : km",
+    caption = "자료출저 : 소방청"
+  ) +
+  theme_light() +
+  theme(
+    plot.title = element_text(size = 20L,
+                              face = "bold",
+                              hjust = 0.5),
+    plot.subtitle = element_text(size = 13L,
+                                 face = "italic",
+                                 hjust = 1),
+    plot.caption = element_text(size = 13L,
+                                face = "italic"),
+    axis.title.y = element_text(size = 13L)
+  )
+
+## 1. 소방서별 발화지 거리 
+PostHocTest(time_anova2, method='scheffe')
+shapiro.test(aov_data1  소방서거리...)
+qqnorm(aov_data1  소방서거리...)
+qqline(aov_data1  소방서거리...,col = 2)
+
+# 박스플롯확인 
+boxplot(aov_data1  소방서거리...)
+boxplot(aov_data1  소방서거리...)  stats[5,]
+
+# 정제아노바 데이터만들기
+process_aov_data <- aov_data1 %>% 
+  select( X119안전센터, 소방서, 소방서거리..., 안전센터거리) %>% 
+  filter(소방서거리...<=13.1)
+
+# 데이터 확인 
+View(process_aov_data)
+boxplot(process_aov_data  소방서거리...)
+shapiro.test(process_aov_data  안전센터거리)
+
+# QQPLOT
+qqnorm(process_aov_data  소방서거리...)
+qqline(process_aov_data  소방서거리...,col = 2)
+
+leveneTest(time_anova2)
+leveneTest(time_anova1)
+
+# process_aov_data
+A<- aov(소방서거리...~소방서,data =process_aov_data)
+
+
+
+######################################
+######################################
+# 안전센터별 소방서 거리 평균
+
+km_fire_point_1<-aov_data1 %>% 
+  group_by(X119안전센터) %>% 
+  summarise(안전센터거리평균= round(mean(안전센터거리),2))
+View(km_fire_point_1)  
+
+## ggplot 
+
+
+
+## 2. 안전센터별 발화지 거리 
+PostHocTest(time_anova1, method='scheffe')
+shapiro.test(aov_data1  소방서거리...)
+qqnorm(aov_data1  안전센터거리)
+qqline(aov_data1  안전센터거리,col = 2)
+
+# 박스플롯확인 
+boxplot(aov_data1  안전센터거리)
+boxplot(aov_data1  안전센터거리)  stats[5,]
+
+# 정제아노바 데이터만들기
+process_aov_data_1 <- aov_data1 %>% 
+  select( X119안전센터, 소방서, 소방서거리..., 안전센터거리) %>% 
+  filter(안전센터거리<=4.7)
+
+# 데이터 확인 
+View(process_aov_data_1)
+boxplot(process_aov_data  안전센터거리)
+shapiro.test(process_aov_data_1  안전센터거리)
+
+# QQPLOT
+qqnorm(process_aov_data_1  안전센터거리)
+qqline(process_aov_data_1  안전센터거리,col = 2)
+
+leveneTest(time_anova2)
+leveneTest(time_anova1)
+
+# process_aov_data
+A<- aov(소방서거리...~소방서,data =process_aov_data)
+
+
+# 출동시간
+raw_data <- read.csv('소방청_화재발생 주소정보_201712311그래프용.csv',header = T)
+
+time_graph <- raw_data %>% 
+  select(시도본부,소방서,X119안전센터,출동소요시간) %>% 
+  filter(시도본부 == '대구소방안전본부')
+
+
+table(time_graph$소방서)
+class(time_graph$출동소요시간)
+time_graph$출동소요시간 <- round(as.numeric(time_graph$출동소요시간),2)
+
+View(head(time_graph,2))
+
+anaylse_time <- aov(출동소요시간~소방서,data = time_graph)
+summary(anaylse_time)
+
+PostHocTest(anaylse_time, method='scheffe')
+
+
+############### 
+
+graph <- read.csv('소방청_화재발생 주소정보_201712311그래프용.csv',header = T)
+View(head(graph,2))
+dim(graph_11)
+graph_11 <- graph %>% 
+  filter(시도본부 == '대구소방안전본부') %>% 
+  select(소방서,h,출동소요시간)
+  
+View(head(graph_11,3))
+
+gplot(time_graph) +
+  aes(x = 소방서, y = 출동소요시간) +
+  geom_boxplot(shape = "circle", fill = "#112446") +
+  labs(
+    y = "출동소요시간(분)",
+    title = "대구광역시 소방서별 출동소요시간",
+    caption = "지료출저 : 소방청"
+  ) +
+  theme_light() +
+  theme(
+    plot.title = element_text(size = 20L,
+                              face = "bold",
+                              hjust = 0.5),
+    plot.caption = element_text(size = 13L,
+                                face = "italic")
+  ) +
+  ylim(0L, 10L)
+
+
+#  사후검정 
+install.packages('DescTools')
+
+library("DescTools")
+
+# scheffe's method 
+
+PostHocTest(A, method='scheffe')
+
+
+deagu_fire<- raw_data %>% 
+  filter(시도본부 =='대구소방안전본부') 
+
+
+
+# 대구시 재산피해 소계 사분위수
+
+quantile(deagu_fire  재산피해소계,probs=seq(0,1,by=0.1))
+quantile(deagu_fire  재산피해소계,probs=seq(0,1,by=0.2))
+quantile(deagu_fire  재산피해소계,probs=seq(0,1,by=0.25))
+quantile(deagu_fire  화재진압시간.초.,probs=seq(0,1,by=0.25))
+
+max()
+
+raw_data <- read.csv('소방청_화재발생 주소정보_2017.csv',header = T)
+
+
+deagu_fire<- raw_data %>% 
+  filter(시도본부 =='대구소방안전본부') 
+
+View(deagu_fire)
+dim(deagu_fire)
+
+# 동원인력
+quantile(deagu_fire  화재진압시간.초.,probs=seq(0,1,by=0.25))
+quantile(deagu_fire  동원인력소계,probs=seq(0,1,by=0.25))
+
+# 시간
+quantile(deagu_fire  ,probs=seq(0,1,by=0.25))
+class(deagu_fire  화재진압시간)
+
+# 요소별 상관관계 
+library(corrplot)
+
+deagu_fire_cor <- deagu_fire %>% 
+  select(재산피해소계,화재진압시간.초.,인명피해.명.소계,동원인력소계)
+
+corrplot(cor(deagu_fire_cor), method="circle")
+corrplot(cor(deagu_fire_cor), method="number")
+
+regression_ana<-lm(동원인력소계~재산피해소계+화재진압시간.초.+인명피해.명.소계,data= deagu_fire) 
+summary(regression_ana)  
+deagu_fire['재산피해소계'] <- deagu_fire['재산피해소계']*0.5
+View(deagu_fire)
+
+install.packages('car')
+library(car)
+vif(regression_ana)
+
+plot(regression_ana, 1)
+plot(regression_ana, 2)
+plot(regression_ana, 3)
+plot(regression_ana, 4)
+화재 데이터 y생성
+# 원본 데이터 호출 
+
+raw_data <- read.csv('소방청_화재발생 주소정보_2017.csv',header = T)
+
+# 대구시소방본부만 추출 
+
+deagu_fire_ST <- raw_data %>% 
+  filter(시도본부 =='대구소방안전본부') 
+
+# 대구시소방본부 데이터 확인 
+dim(deagu_fire_ST)
+
+# 필요한 열만 추출 
+deagu_fire_ST_1 <- deagu_fire_ST %>% 
+  select(시도본부,X119안전센터,사망,부상,재산피해소계,화재진압시간.초.,동원인력소계)
+
+View(deagu_fire_ST_1)
+
+# 결측치 확인 
+table(is.na(deagu_fire_ST_1))
+
+raw_data_1 <- read.csv('소방청_화재발생 주소정보_20171231.csv',header = T)
+deagu_fire_ST_1_1 <- raw_data %>% 
+  filter(시도본부 =='대구소방안전본부') 
+
+# 대구시소방본부 데이터 확인 
+dim(deagu_fire_ST)
+
+# 필요한 열만 추출 
+deagu_fire_ST_raw <- deagu_fire_ST_1_1 %>% 
+  select(시도본부,X119안전센터,사망,부상,재산피해소계,화재진압시간.초.,동원인력소계)
+
+View(deagu_fire_ST_1)
+
+# 결측치 중앙값으로 대체, 확인 
+table(is.na(deagu_fire_ST_raw))
+
+# 필요한 열 추출 
+
+deagu_f
+
+# 대구데이터 -> deagu_fire_ST_raw
+summary(deagu_fire_ST_raw)
+
+View(deagu_fire_ST_raw)
+
+#########################
+#1. 동원인력       0.4  #
+#2. 화재진압시간   0.3  #
+#3. 인명피해소계   0.2  #
+#4. 재산피해소계   0.1  #
+#########################
+
+
+# 원본데이터 불러오기 
+
+RAW_DATA<- read.csv('소방청_화재발생 주소정보_20171231.csv',header = T)
+table(is.na(RAW_DATA))
+
+# 대구시만 추출
+raw_data_1 <- RAW_DATA %>% 
+  filter(시도본부 =='대구소방안전본부') 
+
+
+# 조사서번호를 기본키로 설정하기 = 중복값 없음, 추후 병합으로 묶기 가능 
+table(duplicated(raw_data_1$조사서번호))
+
+
+# 결측치 확인 
+table(is.na(raw_data_1))
+
+# 필요한 열 추출 
+
+raw_data_2 <- raw_data_1 %>% 
+  select( 조사서번호,
+          X119안전센터,
+          소방서,
+            사망,
+           부상,
+           인명피해.명.소계,
+           재산피해소계,
+           소방서거리...,
+           건물층수.지상.,
+           건물층수.지하.,
+           부동산,
+           동산,
+           화재피해경감액,
+           부동산경감,
+           동산경감,
+           인명구조.명.,
+           유도대피.명.,
+           동원인력소계,
+           소방동원명수,
+           동원장비소계,
+           펌프물탱크,
+           구조,
+           구급,
+           습도,
+           온도...,
+           층수.지상.,
+           층수.지하.,
+           연면적,
+           바닥면적,
+           안전센터거리)
+
+
+dim(raw_data_2)
+View(raw_data_2)
+
+
+# 결측치 처리 (중앙값)
+raw_data_2$사망 <- ifelse( !is.na(raw_data_2$사망), raw_data_2$사망, round(median(raw_data_2$사망, na.rm=T), 2))
+raw_data_2$부상 <- ifelse( !is.na(raw_data_2$부상), raw_data_2$부상, round(median(raw_data_2$부상, na.rm=T), 2))
+raw_data_2$인명피해.명.소계 <- ifelse( !is.na(raw_data_2$인명피해.명.소계), raw_data_2$인명피해.명.소계, round(median(aov_data1$인명피해.명.소계, na.rm=T), 2))
+raw_data_2$재산피해소계 <- ifelse( !is.na(raw_data_2$재산피해소계), raw_data_2$재산피해소계, round(median(aov_data1$raw_data_2, na.rm=T), 2))
+raw_data_2$소방서거리... <- ifelse( !is.na(raw_data_2$소방서거리...), raw_data_2$소방서거리..., round(median(raw_data_2$소방서거리..., na.rm=T), 2))
+raw_data_2$건물층수.지상. <- ifelse( !is.na(raw_data_2$건물층수.지상.), raw_data_2$건물층수.지상., round(median(raw_data_2$건물층수.지상., na.rm=T), 2))
+raw_data_2$건물층수.지하. <- ifelse( !is.na(raw_data_2$건물층수.지하.), raw_data_2$건물층수.지하., round(median(raw_data_2$건물층수.지상., na.rm=T), 2))
+raw_data_2$부동산 <- ifelse( !is.na(raw_data_2$부동산), raw_data_2$부동산, round(median(raw_data_2$부동산, na.rm=T), 2))
+raw_data_2$동산 <- ifelse( !is.na(raw_data_2$동산), raw_data_2$동산, round(median(raw_data_2$동산, na.rm=T), 2))
+raw_data_2$화재피해경감액 <- ifelse( !is.na(raw_data_2$화재피해경감액), raw_data_2$화재피해경감액, round(median(raw_data_2$화재피해경감액, na.rm=T), 2))
+raw_data_2$부동산경감 <- ifelse( !is.na(raw_data_2$부동산경감), raw_data_2$부동산경감, round(median(raw_data_2$부동산경감, na.rm=T), 2))
+raw_data_2$동산경감 <- ifelse( !is.na(raw_data_2$동산경감), raw_data_2$동산경감, round(median(raw_data_2$동산경감, na.rm=T), 2))
+raw_data_2$인명구조.명. <- ifelse( !is.na(raw_data_2$인명구조.명.), raw_data_2$인명구조.명., round(median(raw_data_2$인명구조.명., na.rm=T), 2))
+raw_data_2$유도대피.명. <- ifelse( !is.na(raw_data_2$유도대피.명.), raw_data_2$유도대피.명., round(median(raw_data_2$유도대피.명., na.rm=T), 2))
+raw_data_2$동원인력소계 <- ifelse( !is.na(raw_data_2$동원인력소계), raw_data_2$동원인력소계, round(median(raw_data_2$동원인력소계, na.rm=T), 2))
+raw_data_2$소방동원명수 <- ifelse( !is.na(raw_data_2$소방동원명수), raw_data_2$소방동원명수, round(median(raw_data_2$소방동원명수, na.rm=T), 2))
+raw_data_2$동원장비소계 <- ifelse( !is.na(raw_data_2$동원장비소계), raw_data_2$동원장비소계, round(median(raw_data_2$동원장비소계, na.rm=T), 2))
+raw_data_2$펌프물탱크 <- ifelse( !is.na(raw_data_2$펌프물탱크), raw_data_2$펌프물탱크, round(median(raw_data_2$펌프물탱크, na.rm=T), 2))
+raw_data_2$구조 <- ifelse( !is.na(raw_data_2$구조), raw_data_2$구조, round(median(raw_data_2$구조, na.rm=T), 2))
+raw_data_2$구급 <- ifelse( !is.na(raw_data_2$구급), raw_data_2$구급, round(median(raw_data_2$구급, na.rm=T), 2))
+raw_data_2$습도 <- ifelse( !is.na(raw_data_2$습도), raw_data_2$습도, round(median(raw_data_2$습도, na.rm=T), 2))
+raw_data_2$온도... <- ifelse( !is.na(raw_data_2$온도...), raw_data_2$온도..., round(median(raw_data_2$온도..., na.rm=T), 2))
+raw_data_2$층수.지상. <- ifelse( !is.na(raw_data_2$층수.지상.), raw_data_2$층수.지상., round(median(raw_data_2$층수.지상., na.rm=T), 2))
+raw_data_2$층수.지하. <- ifelse( !is.na(raw_data_2$층수.지하.), raw_data_2$층수.지하., round(median(raw_data_2$층수.지하., na.rm=T), 2))
+raw_data_2$연면적 <- ifelse( !is.na(raw_data_2$연면적), raw_data_2$연면적, round(median(raw_data_2$연면적, na.rm=T), 2))
+raw_data_2$바닥면적 <- ifelse( !is.na(raw_data_2$바닥면적), raw_data_2$바닥면적, round(median(raw_data_2$바닥면적, na.rm=T), 2))
+raw_data_2$안전센터거리 <- ifelse( !is.na(raw_data_2$안전센터거리), raw_data_2$안전센터거리, round(median(raw_data_2$안전센터거리, na.rm=T), 2))
+raw_data_2$출동소요시간 <- ifelse( !is.na(raw_data_2$출동소요시간), raw_data_2$출동소요시간, round(median(raw_data_2$출동소요시간, na.rm=T), 2))
+raw_data_2$화재진압시간 <- ifelse( !is.na(raw_data_2$화재진압시간), raw_data_2$화재진압시간, round(median(raw_data_2$화재진압시간, na.rm=T), 2))
+
+table(is.na(raw_data_2))
+View(raw_data_2)
+
+
+
+raw_data_3 <- raw_data_2
+View(raw_data_3)
+
+# 대구시 결측치 제거 
+write.csv(raw_data_2,'대구시 결측치 중앙값 대처0812.csv')
+
+
+# 사분위수 확인 
+quantile(raw_data_3$재산피해소계)
+
+# 파생변수 만들기 
+
+select_data<- raw_data_3 %>% 
+  select(조사서번호,X119안전센터,조사서번호,소방서,사망,부상,인명피해.명.소계,재산피해소계,동원인력소계,동원인력소계)
+
+
+# y 재산 등간척도  
+select_data1<- select_data %>% 
+mutate(y재산 = cut(x = 재산피해소계, # 기준 데이터
+                            breaks = c(0, 29, 283.5, 1516.5, 978259.0), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                            right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                            labels = c(1,2,3,4), # 각 구간별 이름
+                            ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(select_data1)
+
+# y 동원인력 등간척도
+select_data2<- select_data1 %>% 
+  mutate(y동원인력 = cut(x = 동원인력소계, # 기준 데이터
+                   breaks = c( 0, 26, 39, 46,  655 ), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                   right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                   labels = c(1,2,3,4), # 각 구간별 이름
+                   ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(select_data2)
+quantile(raw_data_3$)
+
+
+# y 화재진압시간 등간척도
+class($)
+select_data2<- select_data1 %>% 
+  mutate(y인명 = cut(x = 동원인력소계, # 기준 데이터
+                   breaks = c( 0, 26, 39, 46,  654 ), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                   right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                   labels = c(1,2,3,4), # 각 구간별 이름
+                   ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+# 
+
+write.csv(select_data2,'y화재,동원추출1.csv')
+
+
+# merge 이용해서 소방진압시간 추출 
+A <- read.csv('소방청_화재발생 주소정보_2017.csv',header= T)
+select_data3 <- merge(A,select_data2,key = '조사서번호')
+dim(select_data3)
+
+
+selecet_data_4 <- select_data3 %>% 
+  select( 조사서번호,
+         X119안전센터,
+         소방서,
+         사망,
+         부상,
+         화재진압시간.초.,
+         인명피해.명.소계,
+         재산피해소계,
+         소방서거리...,
+         건물층수.지상.,
+         건물층수.지하.,
+        동원인력소계,
+         소방동원명수,
+         동원장비소계,
+         안전센터거리,
+        y재산,
+        y동원인력,
+        y동원인력)
+
+
+
+class(selecet_data_4$화재진압시간.초.)
+
+# 화재진압시간 등간척도 
+
+quantile(selecet_data_4$화재진압시간.초.)
+
+select_data_5<- selecet_data_4 %>% 
+  mutate(y화재진압시간 = cut(x = 화재진압시간.초., # 기준 데이터
+                   breaks = c(0,60,240, 600, 52260), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                   right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                   labels = c(1,2,3,4), # 각 구간별 이름
+                   ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(select_data_5)
+
+
+# merge 이용해서 소방진압시간 추출 
+A <- read.csv('y화재,동원추출1.csv',header= T)
+select_data6 <- merge(A,select_data_5,key = '조사서번호')
+dim(select_data6)
+View(select_data6)
+
+write.csv(select_data6,'최종y산출데이터.csv')
+
+A <- read.csv('최종y산출데이터.csv',header= T)
+final_data_Y <- merge(A,select_data_5,key = '조사서번호')
+View(final_data_Y)
+
+dim(raw_data_1)
+
+raw_data_2 <- raw_data_1 %>% 
+  select( 조사서번호,
+         X119안전센터,
+         소방서,
+         사망,
+         부상,
+         인명피해.명.소계,
+         재산피해소계,
+         건물층수.지상.,
+         건물층수.지하.,
+         부동산,
+         동산,
+         화재피해경감액,
+         부동산경감,
+         동산경감,
+         인명구조.명.,
+         유도대피.명.,
+         동원인력소계,
+         소방동원명수,
+         동원장비소계,
+         펌프물탱크,
+         구조,
+         구급,
+         습도,
+         온도...,
+         층수.지상.,
+         층수.지하.,
+         연면적,
+         바닥면적,
+         안전센터거리)
+
+
+A <- read.csv('최종y산출데이터.csv',header = T)
+raw_data_1       
+final_data_Y_1 <- merge(A,raw_data_1,key ='조사서번호')       
+dim(final_data_Y_1)
+
+final_data_Y_1_1 <- final_data_Y_1 %>% 
+  select(조사서번호,
+              X119안전센터,
+              소방서,
+              시군구,
+              읍면동,
+              사망,
+              부상,
+              화재진압시간.초.,
+              인명피해.명.소계,
+              재산피해소계,
+              소방서거리...,
+              동원인력소계,
+              y재산,
+              y동원인력,
+              y동원인력,
+              y화재진압시간,
+              y최종값)
+  
+write.csv(final_data_Y_1_1,'final.csv')
+class(final_data_Y_1_1$y최종값)
+
+View(final_data_Y_1_1)
+final_data_Y_1_2<- as.numeric(final_data_Y_1_1$y최종값
+
+# 읍면동 별로 group_by 묶어서 시그마 y산출 
+
+A %>% 
+  group_by(읍면동) %>% 
+  summarise(sum_y = sum(y최종값))
+  
+
+class(A$y최종값)
+
+final_data_Y_1_1[y최종값] <-as.numeric(final_data_Y_1_1$y최종값)
+
+A <- read.csv('final.csv',header = T)
+
+
+table(A$읍면동)
+
+
+B <- A %>% 
+  select(읍면동,y최종값) %>% 
+  group_by(읍면동)
+  
+View(B) 
+
+C<- read.csv('최종y산출데이터.csv',header = T)
+table(is.na(B))
+View(C)
+
+
+D<- raw_data %>% 
+  select(조사서번호,읍면동)
+F1 <- merge(D,C,key = '조사서번호')
+View(F1)
+
+
+write.csv(F1,'찐막.csv')
+
+
+
+QQ <- read.csv('찐막.csv',header = T)
+QQ$y최종값
+
+QQ %>% 
+  group_by(읍면동) %>% 
+  summarise(sum_Y = sum(y최종값))
+table(is.na(QQ))
+View(QQ)
+
+
+QQQ <-  QQ %>% 
+  select(읍면동,y최종값)
+
+QQQ %>% 
+  group_by(읍면동) %>% 
+  summarise(sum(y최종값))
+
+
+
+QQQQ<- merge(QQ,raw_data,key='조사서번호')
+View(QQQQ)
+
+dim(QQ)
+QQ_1<- unique(QQ)
+dim(QQ_1)
+QQQ_1<- QQ %>% 
+  group_by(읍면동) %>% 
+  summarise(sum_y = sum(y최종값))
+
+QQ_1,'찐막2.csv')
+
+# 건물데이터 층수 정리하기
+
+# 1. 중구 데이터 불러오기 
+
+jong_gu <- read.csv('AL_27110_D197_20210113_중구.csv',header = T)
+dim(jong_gu)
+
+library(dplyr)
+jong_gu_1 <-jong_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+View(jong_gu_1)  
+
+# 기본키 설정 
+table(duplicated(jong_gu_1$기본키))
+
+# 동별 층수 그룹화 총점내기  
+
+jong_gu_2<- jong_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(jong_gu_2)
+
+# 등간척도 형변환
+
+class(jong_gu_2$건물층수척도)
+jong_gu_2[,'건물층수척도'] <-as.numeric(jong_gu_2$건물층수척도) 
+class(jong_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+jong_gu_3<- jong_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+summary(jong_gu_3)
+max(jong_gu_3$건물점수총합)
+View(jong_gu_3)
+
+# 파일로 저장 
+
+write.csv(jong_gu_3,'건물층수 등간척도 총합계(중구1).csv')
+
+
+
+# 2. 동구 데이터 불러오기 
+
+dong_gu <- read.csv('AL_27140_D197_20210113_동구.csv',header = T)
+dim(dong_gu)
+
+dong_gu_1 <-dong_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+View(dong_gu_1)  
+
+# 층수 테이블 확인 
+table(dong_gu_1$지상층수)
+
+#결측치 확인 
+table(is.na(dong_gu_1$지상층수))
+
+# 결측치 제거 
+dong_gu_1 <- dong_gu_1[!is.na(dong_gu_1$지상층수),]
+
+table(is.na(dong_gu_1$지상층수))
+
+# 동별 층수 그룹화 총점내기  
+
+dong_gu_2<- dong_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dong_gu_2)
+
+# 등간척도 형변환
+
+class(dong_gu_2$건물층수척도)
+dong_gu_2[,'건물층수척도'] <-as.numeric(dong_gu_2$건물층수척도) 
+class(jong_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dong_gu_3<- dong_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dong_gu_3)
+max(dong_gu_3$건물점수총합)
+View(dong_gu_3)
+table(is.na(dong_gu_2$지상층수))
+# 파일로 저장 
+
+write.csv(dong_gu_3,'건물층수 등간척도 총합계(동구1).csv')
+
+
+# 3.남구데이터 불러오기 
+
+nam_gu <- read.csv('AL_27200_D197_20210113_남구.csv',header = T)
+dim(dong_gu)
+
+nam_gu_1 <-nam_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+View(nam_gu_1)  
+
+# 층수 테이블 확인 
+
+table(nam_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(nam_gu_1))
+
+# 층수 결측치 없음 
+
+# 결측치 제거 
+
+dong_gu_1 <- ifelse( !is.na(dong_gu_1$지상층수), 0, dong_gu_1$지상층수)
+table(is.na(dong_gu_1$지상층수))
+
+# 동별 층수 그룹화 총점내기  
+
+nam_gu_2<- nam_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(nam_gu_2)
+
+# 등간척도 형변환
+
+class(nam_gu_2$건물층수척도)
+nam_gu_2[,'건물층수척도'] <-as.numeric(nam_gu_2$건물층수척도) 
+class(nam_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+nam_gu_3<- nam_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dong_gu_3)
+max(dong_gu_3$건물점수총합)
+View(nam_gu_3)
+
+# 파일로 저장 
+
+write.csv(nam_gu_3,'건물층수 등간척도 총합계(남구1).csv')
+
+
+# 4.수성구 데이터 불러오기 
+
+susang_gu <- read.csv('AL_27260_D197_20210113_수성구.csv',header = T)
+dim(susang_gu)
+
+susang_gu_1 <-susang_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(susang_gu_1)
+
+# 층수 테이블 확인 
+
+table(susang_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(susang_gu_1$지상층수))
+
+# 층수 결측치 없음 
+
+# 결측치 제거 
+
+susang_gu_1 <- susang_gu_1[!is.na(susang_gu_1$지상층수),]
+table(is.na(susang_gu_1$지상층수))
+
+# 동별 층수 그룹화 총점내기  
+
+susang_gu_2<- susang_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(susang_gu_2)
+
+# 등간척도 형변환
+
+class(susang_gu_2$건물층수척도)
+susang_gu_2[,'건물층수척도'] <-as.numeric(susang_gu_2$건물층수척도) 
+class(susang_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+susang_gu_3<- susang_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(susang_gu_2)
+max(dong_gu_3$건물점수총합)
+View(susang_gu_3)
+
+# 파일로 저장 
+
+write.csv(susang_gu_3,'건물층수 등간척도 총합계(수성구1).csv')
+
+# 5.달성군 데이터 불러오기 
+
+susang_gu <- read.csv('AL_27260_D197_20210113_수성구.csv',header = T)
+dim(susang_gu)
+
+susang_gu_1 <-susang_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(susang_gu_1)
+
+# 층수 테이블 확인 
+
+table(susang_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(susang_gu_1$지상층수))
+
+# 층수 결측치 없음 
+# 
+# 결측치 제거 
+
+susang_gu_1 <- susang_gu_1[!is.na(susang_gu_1$지상층수),]
+table(is.na(susang_gu_1$지상층수))
+
+# 동별 층수 그룹화 총점내기  
+
+susang_gu_2<- susang_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(susang_gu_2)
+
+# 등간척도 형변환
+
+class(susang_gu_2$건물층수척도)
+susang_gu_2[,'건물층수척도'] <-as.numeric(susang_gu_2$건물층수척도) 
+class(susang_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+library(dplyr)
+susang_gu_3<- susang_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(susang_gu_2)
+max(dong_gu_3$건물점수총합)
+View(susang_gu_3)
+
+# 파일로 저장 
+
+write.csv(susang_gu_3,'건물층수 등간척도 총합계(수성구).csv')
+
+# 6. 남구/동구/서구/수성구/북구
+#  달서구 데이터 추출 
+
+dal_se_gu <- read.csv('AL_27290_D197_20210113_달서구.csv',header = T)
+dim(dal_se_gu)
+
+dal_se_gu_1 <-dal_se_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(dal_se_gu_1)
+
+# 층수 테이블 확인 
+
+table(dal_se_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(dal_se_gu_1$지상층수))
+
+# 결측치 제거 
+
+dal_se_gu_1 <- dal_se_gu_1[!is.na(dal_se_gu_1$지상층수),]
+table(is.na(dal_se_gu_1$지상층수))
+table(dal_se_gu_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+dal_se_gu_2<- dal_se_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dal_se_gu_2)
+
+# 등간척도 형변환
+
+class(dal_se_gu_2$건물층수척도)
+dal_se_gu_2[,'건물층수척도'] <-as.numeric(dal_se_gu_2$건물층수척도) 
+class(dal_se_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dal_se_gu_3<- dal_se_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dal_se_gu_3)
+max(dong_gu_3$건물점수총합)
+View(dal_se_gu_3)
+
+# 파일로 저장 
+
+write.csv(dal_se_gu_3,'건물층수 등간척도 총합계(달서구1).csv')
+
+# 6. 남구/동구/서구/수성구/북구/달서구
+# 중구 데이터 추출 
+
+jung_gu <- read.csv('AL_27110_D197_20210113_중구.csv',header = T)
+dim(jung_gu)
+
+jung_gu_1 <-jung_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(jung_gu_1)
+
+# 층수 테이블 확인 
+
+table(jung_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(jung_gu_1$지상층수))
+
+# 결측치 없음  
+
+# 결측치 제거 
+
+dal_se_gu_1 <- dal_se_gu_1[!is.na(dal_se_gu_1$지상층수),]
+table(is.na(dal_se_gu_1$지상층수))
+table(dal_se_gu_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+jung_gu_2<- jung_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(jung_gu_2)
+
+# 등간척도 형변환
+
+class(jung_gu_2$건물층수척도)
+jung_gu_2[,'건물층수척도'] <-as.numeric(jung_gu_2$건물층수척도) 
+class(jung_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+jung_gu_3<- jung_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(jung_gu_3)
+max(dong_gu_3$건물점수총합)
+View(jung_gu_3)
+
+# 파일로 저장 
+
+write.csv(jung_gu_3,'건물층수 등간척도 총합계(중구).csv')
+
+# 7. 남구/동구/서구/수성구/북구/달서구/중구
+#  달성군군데이터 추출 
+
+dal_sung_gun <- read.csv('AL_27710_D197_20210113_달성군.csv',header = T)
+dim(dal_sung_gun)
+
+dal_sung_gun_1 <-dal_sung_gun %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(dal_sung_gun_1)
+
+# 층수 테이블 확인 
+
+table(dal_sung_gun_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(dal_sung_gun_1$지상층수))
+
+# 결측치 없음  
+
+# 결측치 제거 
+
+dal_sung_gun_1 <- dal_sung_gun_1[!is.na(dal_sung_gun_1$지상층수),]
+table(is.na(dal_sung_gun_1$지상층수))
+table(dal_sung_gun_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+dal_sung_gun_2<- dal_sung_gun_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dal_sung_gun_2)
+
+# 등간척도 형변환
+
+class(dal_sung_gun_2$건물층수척도)
+dal_sung_gun_2[,'건물층수척도'] <-as.numeric(dal_sung_gun_2$건물층수척도) 
+class(dal_sung_gun_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dal_sung_gun_3<- dal_sung_gun_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dal_sung_gun_3)
+max(dong_gu_3$건물점수총합)
+View(dal_sung_gun_3)
+
+dal_sung_gun_x <-  dal_sung_gun_2 %>% 
+  filter(지상층수>=11)
+View(dal_sung_gun_x)
+# 파일로 저장 
+
+write.csv(dal_sung_gun_3,'건물층수 등간척도 총합계(달성군1).csv')
+
+
+# 8. 남구/동구/서구/수성구/북구/달서구/중구
+#  북구데이터 추출 
+
+dal_sung_gun <- read.csv('AL_27230_D197_20210113_북구.csv',header = T)
+dim(dal_sung_gun)
+
+dal_sung_gun_1 <-dal_sung_gun %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(dal_sung_gun_1)
+
+# 층수 테이블 확인 
+
+table(dal_sung_gun_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(dal_sung_gun_1$지상층수))
+
+# 결측치 없음  
+
+# 결측치 제거 
+
+dal_sung_gun_1 <- dal_sung_gun_1[!is.na(dal_sung_gun_1$지상층수),]
+table(is.na(dal_sung_gun_1$지상층수))
+table(dal_sung_gun_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+dal_sung_gun_2<- dal_sung_gun_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dal_sung_gun_2)
+
+# 등간척도 형변환
+
+class(dal_sung_gun_2$건물층수척도)
+dal_sung_gun_2[,'건물층수척도'] <-as.numeric(dal_sung_gun_2$건물층수척도) 
+class(dal_sung_gun_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dal_sung_gun_3<- dal_sung_gun_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dal_sung_gun_3)
+max(dong_gu_3$건물점수총합)
+View(dal_sung_gun_3)
+
+# 파일로 저장 
+
+write.csv(dal_sung_gun_3,'건물층수 등간척도 총합계(북구1).csv')
+
+AL_27170_D197_20210113_서구
+
+# 6. 남구/동구/서구/수성구/북구
+#  달서구 데이터 추출 
+
+dal_se_gu <- read.csv('AL_27170_D197_20210113_서구.csv',header = T)
+dim(dal_se_gu)
+
+dal_se_gu_1 <-dal_se_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(dal_se_gu_1)
+
+# 층수 테이블 확인 
+
+table(dal_se_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(dal_se_gu_1$지상층수))
+
+# 결측치 제거 
+
+dal_se_gu_1 <- dal_se_gu_1[!is.na(dal_se_gu_1$지상층수),]
+table(is.na(dal_se_gu_1$지상층수))
+table(dal_se_gu_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+dal_se_gu_2<- dal_se_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dal_se_gu_2)
+
+# 등간척도 형변환
+
+class(dal_se_gu_2$건물층수척도)
+dal_se_gu_2[,'건물층수척도'] <-as.numeric(dal_se_gu_2$건물층수척도) 
+class(dal_se_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dal_se_gu_3<- dal_se_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dal_se_gu_3)
+max(dong_gu_3$건물점수총합)
+View(dal_se_gu_3)
+
+# 파일로 저장 
+
+write.csv(dal_se_gu_3,'건물층수 등간척도 총합계(서구1).csv')
+
+# 6. 남구/동구/서구/수성구/북구/달서구
+# 중구 데이터 추출 
+
+jung_gu <- read.csv('AL_27110_D197_20210113_중구.csv',header = T)
+dim(jung_gu)
+
+jung_gu_1 <-jung_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(jung_gu_1)
+
+# 층수 테이블 확인 
+
+table(jung_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(jung_gu_1$지상층수))
+
+# 결측치 없음  
+
+# 결측치 제거 
+
+dal_se_gu_1 <- dal_se_gu_1[!is.na(dal_se_gu_1$지상층수),]
+table(is.na(dal_se_gu_1$지상층수))
+table(dal_se_gu_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+jung_gu_2<- jung_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(jung_gu_2)
+
+# 등간척도 형변환
+
+class(jung_gu_2$건물층수척도)
+jung_gu_2[,'건물층수척도'] <-as.numeric(jung_gu_2$건물층수척도) 
+class(jung_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+jung_gu_3<- jung_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(jung_gu_3)
+max(dong_gu_3$건물점수총합)
+View(jung_gu_3)
+
+# 파일로 저장 
+
+write.csv(jung_gu_3,'건물층수 등간척도 총합계(중구).csv')
+
+# y값 + 건물층수 등간척도 결합 = Y 생성 
+# 
+Y <- read.csv('찐막2.csv',header = T)
+View(Y)
+dim(Y)
+
+# 대구시 읍면동별 건물 층수 등간척도 한 데이터로 묶기 
+
+# 행정구역별 건물 층수 등간척도 데이터 불러오기 
+
+nam_gu <- read.csv('건물층수 등간척도 총합계(남구1).csv',header = T)
+dal_se_gu <- read.csv('건물층수 등간척도 총합계(달서구1).csv',header = T)
+dal_sung_gun <- read.csv('건물층수 등간척도 총합계(달성군1).csv',header = T)
+dong_gu <- read.csv('건물층수 등간척도 총합계(동구1).csv',header = T)
+buk_gu <- read.csv('건물층수 등간척도 총합계(북구1).csv',header = T)
+se_gu<- read.csv('건물층수 등간척도 총합계(서구1).csv',header = T)
+su_sung_gu <- read.csv('건물층수 등간척도 총합계(수성구1).csv',header = T)
+jong_gu <- read.csv('건물층수 등간척도 총합계(남구1).csv',header = T)
+
+# 불러온 데이터 차원 확인 
+dim(nam_gu)
+dim(dal_se_gu)
+dim(dal_sung_gun)
+dim(dong_gu)
+dim(buk_gu)
+dim(se_gu)
+dim(su_sung_gu)
+dim(jong_gu)
+
+
+# 건물층수 등간척도 데이터 병합 
+
+a<- rbind(nam_gu,dal_se_gu)
+b<- rbind(a,dal_sung_gun)
+c <- rbind(b,dong_gu)
+d <- rbind(c,buk_gu)
+e <- rbind(d,se_gu)
+f <- rbind(e,jong_gu)
+g<- rbind(f,su_sung_gu)
+
+# 최종 결과파일 g 확인 
+
+View(g)
+qq<- unique(g)
+dim(qq)
+
+# 통합 데이터 저장 및 불러오기 
+
+write.csv(g,'대구시건물층수 등간척도 통합데이터_final.csv')
+AAA<- read.csv('대구시건물층수 등간척도 통합데이터_final.csv',header =T )
+dim(AAA)
+dim(Y)
+table(g$읍면동) 
+
+
+# y산출 데이터와 건물총점 데이터 통합 
+
+final_Y_score_1 <- left_join(Y,AAA, by = '읍면동')
+aaaa<- unique(final_Y_score_1$읍면동)
+View(aaaa)
+
+final_Y_score_2<- unique(final_Y_score_1$읍면동)
+write.csv(final_Y_score_1,'건물총점데이터(y병합).csv')
+
+final_Y_score_2<- unique(final_Y_score_1)
+dim(FINAL1)
+View(FINAL1)
+
+write.csv(asdf1,'찐막 통합데이터.csv')
+# MERGE/LEFT_JOIN 합병이 안되면 키값이 일치하는지 확인해야함
+
+
+View(final_Y_score)
+회귀 분석 및 검정
+# 원본 데이터 호출 
+
+raw_data <- read.csv('소방청_화재발생 주소정보_2017.csv',header = T)
+
+# 대구시소방본부만 추출 
+
+deagu_fire_ST <- raw_data %>% 
+  filter(시도본부 =='대구소방안전본부') 
+
+# 대구시소방본부 데이터 확인 
+dim(deagu_fire_ST)
+
+# 필요한 열만 추출 
+deagu_fire_ST_1 <- deagu_fire_ST %>% 
+  select(시도본부,X119안전센터,사망,부상,재산피해소계,화재진압시간.초.,동원인력소계)
+
+View(deagu_fire_ST_1)
+
+# 결측치 확인 
+table(is.na(deagu_fire_ST_1))
+
+raw_data_1 <- read.csv('소방청_화재발생 주소정보_20171231.csv',header = T)
+deagu_fire_ST_1_1 <- raw_data %>% 
+  filter(시도본부 =='대구소방안전본부') 
+
+# 대구시소방본부 데이터 확인 
+dim(deagu_fire_ST)
+
+# 필요한 열만 추출 
+deagu_fire_ST_raw <- deagu_fire_ST_1_1 %>% 
+  select(시도본부,X119안전센터,사망,부상,재산피해소계,화재진압시간.초.,동원인력소계)
+
+View(deagu_fire_ST_1)
+
+# 결측치 중앙값으로 대체, 확인 
+table(is.na(deagu_fire_ST_raw))
+
+# 필요한 열 추출 
+
+deagu_f
+
+# 대구데이터 -> deagu_fire_ST_raw
+summary(deagu_fire_ST_raw)
+
+View(deagu_fire_ST_raw)
+
+#########################
+#1. 동원인력       0.4  #
+#2. 화재진압시간   0.3  #
+#3. 인명피해소계   0.2  #
+#4. 재산피해소계   0.1  #
+#########################
+
+
+# 원본데이터 불러오기 
+
+RAW_DATA<- read.csv('소방청_화재발생 주소정보_20171231.csv',header = T)
+table(is.na(RAW_DATA))
+
+# 대구시만 추출
+raw_data_1 <- RAW_DATA %>% 
+  filter(시도본부 =='대구소방안전본부') 
+
+
+# 조사서번호를 기본키로 설정하기 = 중복값 없음, 추후 병합으로 묶기 가능 
+table(duplicated(raw_data_1$조사서번호))
+
+
+# 결측치 확인 
+table(is.na(raw_data_1))
+
+# 필요한 열 추출 
+
+raw_data_2 <- raw_data_1 %>% 
+  select( 조사서번호,
+          X119안전센터,
+          소방서,
+            사망,
+           부상,
+           인명피해.명.소계,
+           재산피해소계,
+           소방서거리...,
+           건물층수.지상.,
+           건물층수.지하.,
+           부동산,
+           동산,
+           화재피해경감액,
+           부동산경감,
+           동산경감,
+           인명구조.명.,
+           유도대피.명.,
+           동원인력소계,
+           소방동원명수,
+           동원장비소계,
+           펌프물탱크,
+           구조,
+           구급,
+           습도,
+           온도...,
+           층수.지상.,
+           층수.지하.,
+           연면적,
+           바닥면적,
+           안전센터거리)
+
+
+dim(raw_data_2)
+View(raw_data_2)
+
+
+# 결측치 처리 (중앙값)
+raw_data_2$사망 <- ifelse( !is.na(raw_data_2$사망), raw_data_2$사망, round(median(raw_data_2$사망, na.rm=T), 2))
+raw_data_2$부상 <- ifelse( !is.na(raw_data_2$부상), raw_data_2$부상, round(median(raw_data_2$부상, na.rm=T), 2))
+raw_data_2$인명피해.명.소계 <- ifelse( !is.na(raw_data_2$인명피해.명.소계), raw_data_2$인명피해.명.소계, round(median(aov_data1$인명피해.명.소계, na.rm=T), 2))
+raw_data_2$재산피해소계 <- ifelse( !is.na(raw_data_2$재산피해소계), raw_data_2$재산피해소계, round(median(aov_data1$raw_data_2, na.rm=T), 2))
+raw_data_2$소방서거리... <- ifelse( !is.na(raw_data_2$소방서거리...), raw_data_2$소방서거리..., round(median(raw_data_2$소방서거리..., na.rm=T), 2))
+raw_data_2$건물층수.지상. <- ifelse( !is.na(raw_data_2$건물층수.지상.), raw_data_2$건물층수.지상., round(median(raw_data_2$건물층수.지상., na.rm=T), 2))
+raw_data_2$건물층수.지하. <- ifelse( !is.na(raw_data_2$건물층수.지하.), raw_data_2$건물층수.지하., round(median(raw_data_2$건물층수.지상., na.rm=T), 2))
+raw_data_2$부동산 <- ifelse( !is.na(raw_data_2$부동산), raw_data_2$부동산, round(median(raw_data_2$부동산, na.rm=T), 2))
+raw_data_2$동산 <- ifelse( !is.na(raw_data_2$동산), raw_data_2$동산, round(median(raw_data_2$동산, na.rm=T), 2))
+raw_data_2$화재피해경감액 <- ifelse( !is.na(raw_data_2$화재피해경감액), raw_data_2$화재피해경감액, round(median(raw_data_2$화재피해경감액, na.rm=T), 2))
+raw_data_2$부동산경감 <- ifelse( !is.na(raw_data_2$부동산경감), raw_data_2$부동산경감, round(median(raw_data_2$부동산경감, na.rm=T), 2))
+raw_data_2$동산경감 <- ifelse( !is.na(raw_data_2$동산경감), raw_data_2$동산경감, round(median(raw_data_2$동산경감, na.rm=T), 2))
+raw_data_2$인명구조.명. <- ifelse( !is.na(raw_data_2$인명구조.명.), raw_data_2$인명구조.명., round(median(raw_data_2$인명구조.명., na.rm=T), 2))
+raw_data_2$유도대피.명. <- ifelse( !is.na(raw_data_2$유도대피.명.), raw_data_2$유도대피.명., round(median(raw_data_2$유도대피.명., na.rm=T), 2))
+raw_data_2$동원인력소계 <- ifelse( !is.na(raw_data_2$동원인력소계), raw_data_2$동원인력소계, round(median(raw_data_2$동원인력소계, na.rm=T), 2))
+raw_data_2$소방동원명수 <- ifelse( !is.na(raw_data_2$소방동원명수), raw_data_2$소방동원명수, round(median(raw_data_2$소방동원명수, na.rm=T), 2))
+raw_data_2$동원장비소계 <- ifelse( !is.na(raw_data_2$동원장비소계), raw_data_2$동원장비소계, round(median(raw_data_2$동원장비소계, na.rm=T), 2))
+raw_data_2$펌프물탱크 <- ifelse( !is.na(raw_data_2$펌프물탱크), raw_data_2$펌프물탱크, round(median(raw_data_2$펌프물탱크, na.rm=T), 2))
+raw_data_2$구조 <- ifelse( !is.na(raw_data_2$구조), raw_data_2$구조, round(median(raw_data_2$구조, na.rm=T), 2))
+raw_data_2$구급 <- ifelse( !is.na(raw_data_2$구급), raw_data_2$구급, round(median(raw_data_2$구급, na.rm=T), 2))
+raw_data_2$습도 <- ifelse( !is.na(raw_data_2$습도), raw_data_2$습도, round(median(raw_data_2$습도, na.rm=T), 2))
+raw_data_2$온도... <- ifelse( !is.na(raw_data_2$온도...), raw_data_2$온도..., round(median(raw_data_2$온도..., na.rm=T), 2))
+raw_data_2$층수.지상. <- ifelse( !is.na(raw_data_2$층수.지상.), raw_data_2$층수.지상., round(median(raw_data_2$층수.지상., na.rm=T), 2))
+raw_data_2$층수.지하. <- ifelse( !is.na(raw_data_2$층수.지하.), raw_data_2$층수.지하., round(median(raw_data_2$층수.지하., na.rm=T), 2))
+raw_data_2$연면적 <- ifelse( !is.na(raw_data_2$연면적), raw_data_2$연면적, round(median(raw_data_2$연면적, na.rm=T), 2))
+raw_data_2$바닥면적 <- ifelse( !is.na(raw_data_2$바닥면적), raw_data_2$바닥면적, round(median(raw_data_2$바닥면적, na.rm=T), 2))
+raw_data_2$안전센터거리 <- ifelse( !is.na(raw_data_2$안전센터거리), raw_data_2$안전센터거리, round(median(raw_data_2$안전센터거리, na.rm=T), 2))
+raw_data_2$출동소요시간 <- ifelse( !is.na(raw_data_2$출동소요시간), raw_data_2$출동소요시간, round(median(raw_data_2$출동소요시간, na.rm=T), 2))
+raw_data_2$화재진압시간 <- ifelse( !is.na(raw_data_2$화재진압시간), raw_data_2$화재진압시간, round(median(raw_data_2$화재진압시간, na.rm=T), 2))
+
+table(is.na(raw_data_2))
+View(raw_data_2)
+
+
+
+raw_data_3 <- raw_data_2
+View(raw_data_3)
+
+# 대구시 결측치 제거 
+write.csv(raw_data_2,'대구시 결측치 중앙값 대처0812.csv')
+
+
+# 사분위수 확인 
+quantile(raw_data_3$재산피해소계)
+
+# 파생변수 만들기 
+
+select_data<- raw_data_3 %>% 
+  select(조사서번호,X119안전센터,조사서번호,소방서,사망,부상,인명피해.명.소계,재산피해소계,동원인력소계,동원인력소계)
+
+
+# y 재산 등간척도  
+select_data1<- select_data %>% 
+mutate(y재산 = cut(x = 재산피해소계, # 기준 데이터
+                            breaks = c(0, 29, 283.5, 1516.5, 978259.0), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                            right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                            labels = c(1,2,3,4), # 각 구간별 이름
+                            ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(select_data1)
+
+# y 동원인력 등간척도
+select_data2<- select_data1 %>% 
+  mutate(y동원인력 = cut(x = 동원인력소계, # 기준 데이터
+                   breaks = c( 0, 26, 39, 46,  655 ), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                   right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                   labels = c(1,2,3,4), # 각 구간별 이름
+                   ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(select_data2)
+quantile(raw_data_3$)
+
+
+# y 화재진압시간 등간척도
+class($)
+select_data2<- select_data1 %>% 
+  mutate(y인명 = cut(x = 동원인력소계, # 기준 데이터
+                   breaks = c( 0, 26, 39, 46,  654 ), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                   right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                   labels = c(1,2,3,4), # 각 구간별 이름
+                   ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+# 
+
+write.csv(select_data2,'y화재,동원추출1.csv')
+
+
+# merge 이용해서 소방진압시간 추출 
+A <- read.csv('소방청_화재발생 주소정보_2017.csv',header= T)
+select_data3 <- merge(A,select_data2,key = '조사서번호')
+dim(select_data3)
+
+
+selecet_data_4 <- select_data3 %>% 
+  select( 조사서번호,
+         X119안전센터,
+         소방서,
+         사망,
+         부상,
+         화재진압시간.초.,
+         인명피해.명.소계,
+         재산피해소계,
+         소방서거리...,
+         건물층수.지상.,
+         건물층수.지하.,
+        동원인력소계,
+         소방동원명수,
+         동원장비소계,
+         안전센터거리,
+        y재산,
+        y동원인력,
+        y동원인력)
+
+
+
+class(selecet_data_4$화재진압시간.초.)
+
+# 화재진압시간 등간척도 
+
+quantile(selecet_data_4$화재진압시간.초.)
+
+select_data_5<- selecet_data_4 %>% 
+  mutate(y화재진압시간 = cut(x = 화재진압시간.초., # 기준 데이터
+                   breaks = c(0,60,240, 600, 52260), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                   right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                   labels = c(1,2,3,4), # 각 구간별 이름
+                   ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(select_data_5)
+
+
+# merge 이용해서 소방진압시간 추출 
+A <- read.csv('y화재,동원추출1.csv',header= T)
+select_data6 <- merge(A,select_data_5,key = '조사서번호')
+dim(select_data6)
+View(select_data6)
+
+write.csv(select_data6,'최종y산출데이터.csv')
+
+A <- read.csv('최종y산출데이터.csv',header= T)
+final_data_Y <- merge(A,select_data_5,key = '조사서번호')
+View(final_data_Y)
+
+dim(raw_data_1)
+
+raw_data_2 <- raw_data_1 %>% 
+  select( 조사서번호,
+         X119안전센터,
+         소방서,
+         사망,
+         부상,
+         인명피해.명.소계,
+         재산피해소계,
+         건물층수.지상.,
+         건물층수.지하.,
+         부동산,
+         동산,
+         화재피해경감액,
+         부동산경감,
+         동산경감,
+         인명구조.명.,
+         유도대피.명.,
+         동원인력소계,
+         소방동원명수,
+         동원장비소계,
+         펌프물탱크,
+         구조,
+         구급,
+         습도,
+         온도...,
+         층수.지상.,
+         층수.지하.,
+         연면적,
+         바닥면적,
+         안전센터거리)
+
+
+A <- read.csv('최종y산출데이터.csv',header = T)
+raw_data_1       
+final_data_Y_1 <- merge(A,raw_data_1,key ='조사서번호')       
+dim(final_data_Y_1)
+
+final_data_Y_1_1 <- final_data_Y_1 %>% 
+  select(조사서번호,
+              X119안전센터,
+              소방서,
+              시군구,
+              읍면동,
+              사망,
+              부상,
+              화재진압시간.초.,
+              인명피해.명.소계,
+              재산피해소계,
+              소방서거리...,
+              동원인력소계,
+              y재산,
+              y동원인력,
+              y동원인력,
+              y화재진압시간,
+              y최종값)
+  
+write.csv(final_data_Y_1_1,'final.csv')
+class(final_data_Y_1_1$y최종값)
+
+View(final_data_Y_1_1)
+final_data_Y_1_2<- as.numeric(final_data_Y_1_1$y최종값
+
+# 읍면동 별로 group_by 묶어서 시그마 y산출 
+
+A %>% 
+  group_by(읍면동) %>% 
+  summarise(sum_y = sum(y최종값))
+  
+
+class(A$y최종값)
+
+final_data_Y_1_1[y최종값] <-as.numeric(final_data_Y_1_1$y최종값)
+
+A <- read.csv('final.csv',header = T)
+
+
+table(A$읍면동)
+
+
+B <- A %>% 
+  select(읍면동,y최종값) %>% 
+  group_by(읍면동)
+  
+View(B) 
+
+C<- read.csv('최종y산출데이터.csv',header = T)
+table(is.na(B))
+View(C)
+
+
+D<- raw_data %>% 
+  select(조사서번호,읍면동)
+F1 <- merge(D,C,key = '조사서번호')
+View(F1)
+
+
+write.csv(F1,'찐막.csv')
+
+
+
+QQ <- read.csv('찐막.csv',header = T)
+QQ$y최종값
+
+QQ %>% 
+  group_by(읍면동) %>% 
+  summarise(sum_Y = sum(y최종값))
+table(is.na(QQ))
+View(QQ)
+
+
+QQQ <-  QQ %>% 
+  select(읍면동,y최종값)
+
+QQQ %>% 
+  group_by(읍면동) %>% 
+  summarise(sum(y최종값))
+
+
+
+QQQQ<- merge(QQ,raw_data,key='조사서번호')
+View(QQQQ)
+
+dim(QQ)
+QQ_1<- unique(QQ)
+dim(QQ_1)
+QQQ_1<- QQ %>% 
+  group_by(읍면동) %>% 
+  summarise(sum_y = sum(y최종값))
+
+QQ_1,'찐막2.csv')
+
+# 건물데이터 층수 정리하기
+
+# 1. 중구 데이터 불러오기 
+
+jong_gu <- read.csv('AL_27110_D197_20210113_중구.csv',header = T)
+dim(jong_gu)
+
+library(dplyr)
+jong_gu_1 <-jong_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+View(jong_gu_1)  
+
+# 기본키 설정 
+table(duplicated(jong_gu_1$기본키))
+
+# 동별 층수 그룹화 총점내기  
+
+jong_gu_2<- jong_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(jong_gu_2)
+
+# 등간척도 형변환
+
+class(jong_gu_2$건물층수척도)
+jong_gu_2[,'건물층수척도'] <-as.numeric(jong_gu_2$건물층수척도) 
+class(jong_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+jong_gu_3<- jong_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+summary(jong_gu_3)
+max(jong_gu_3$건물점수총합)
+View(jong_gu_3)
+
+# 파일로 저장 
+
+write.csv(jong_gu_3,'건물층수 등간척도 총합계(중구1).csv')
+
+
+
+# 2. 동구 데이터 불러오기 
+
+dong_gu <- read.csv('AL_27140_D197_20210113_동구.csv',header = T)
+dim(dong_gu)
+
+dong_gu_1 <-dong_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+View(dong_gu_1)  
+
+# 층수 테이블 확인 
+table(dong_gu_1$지상층수)
+
+#결측치 확인 
+table(is.na(dong_gu_1$지상층수))
+
+# 결측치 제거 
+dong_gu_1 <- dong_gu_1[!is.na(dong_gu_1$지상층수),]
+
+table(is.na(dong_gu_1$지상층수))
+
+# 동별 층수 그룹화 총점내기  
+
+dong_gu_2<- dong_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dong_gu_2)
+
+# 등간척도 형변환
+
+class(dong_gu_2$건물층수척도)
+dong_gu_2[,'건물층수척도'] <-as.numeric(dong_gu_2$건물층수척도) 
+class(jong_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dong_gu_3<- dong_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dong_gu_3)
+max(dong_gu_3$건물점수총합)
+View(dong_gu_3)
+table(is.na(dong_gu_2$지상층수))
+# 파일로 저장 
+
+write.csv(dong_gu_3,'건물층수 등간척도 총합계(동구1).csv')
+
+
+# 3.남구데이터 불러오기 
+
+nam_gu <- read.csv('AL_27200_D197_20210113_남구.csv',header = T)
+dim(dong_gu)
+
+nam_gu_1 <-nam_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+View(nam_gu_1)  
+
+# 층수 테이블 확인 
+
+table(nam_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(nam_gu_1))
+
+# 층수 결측치 없음 
+
+# 결측치 제거 
+
+dong_gu_1 <- ifelse( !is.na(dong_gu_1$지상층수), 0, dong_gu_1$지상층수)
+table(is.na(dong_gu_1$지상층수))
+
+# 동별 층수 그룹화 총점내기  
+
+nam_gu_2<- nam_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(nam_gu_2)
+
+# 등간척도 형변환
+
+class(nam_gu_2$건물층수척도)
+nam_gu_2[,'건물층수척도'] <-as.numeric(nam_gu_2$건물층수척도) 
+class(nam_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+nam_gu_3<- nam_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dong_gu_3)
+max(dong_gu_3$건물점수총합)
+View(nam_gu_3)
+
+# 파일로 저장 
+
+write.csv(nam_gu_3,'건물층수 등간척도 총합계(남구1).csv')
+
+
+# 4.수성구 데이터 불러오기 
+
+susang_gu <- read.csv('AL_27260_D197_20210113_수성구.csv',header = T)
+dim(susang_gu)
+
+susang_gu_1 <-susang_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(susang_gu_1)
+
+# 층수 테이블 확인 
+
+table(susang_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(susang_gu_1$지상층수))
+
+# 층수 결측치 없음 
+
+# 결측치 제거 
+
+susang_gu_1 <- susang_gu_1[!is.na(susang_gu_1$지상층수),]
+table(is.na(susang_gu_1$지상층수))
+
+# 동별 층수 그룹화 총점내기  
+
+susang_gu_2<- susang_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(susang_gu_2)
+
+# 등간척도 형변환
+
+class(susang_gu_2$건물층수척도)
+susang_gu_2[,'건물층수척도'] <-as.numeric(susang_gu_2$건물층수척도) 
+class(susang_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+susang_gu_3<- susang_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(susang_gu_2)
+max(dong_gu_3$건물점수총합)
+View(susang_gu_3)
+
+# 파일로 저장 
+
+write.csv(susang_gu_3,'건물층수 등간척도 총합계(수성구1).csv')
+
+# 5.달성군 데이터 불러오기 
+
+susang_gu <- read.csv('AL_27260_D197_20210113_수성구.csv',header = T)
+dim(susang_gu)
+
+susang_gu_1 <-susang_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(susang_gu_1)
+
+# 층수 테이블 확인 
+
+table(susang_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(susang_gu_1$지상층수))
+
+# 층수 결측치 없음 
+# 
+# 결측치 제거 
+
+susang_gu_1 <- susang_gu_1[!is.na(susang_gu_1$지상층수),]
+table(is.na(susang_gu_1$지상층수))
+
+# 동별 층수 그룹화 총점내기  
+
+susang_gu_2<- susang_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(susang_gu_2)
+
+# 등간척도 형변환
+
+class(susang_gu_2$건물층수척도)
+susang_gu_2[,'건물층수척도'] <-as.numeric(susang_gu_2$건물층수척도) 
+class(susang_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+library(dplyr)
+susang_gu_3<- susang_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(susang_gu_2)
+max(dong_gu_3$건물점수총합)
+View(susang_gu_3)
+
+# 파일로 저장 
+
+write.csv(susang_gu_3,'건물층수 등간척도 총합계(수성구).csv')
+
+# 6. 남구/동구/서구/수성구/북구
+#  달서구 데이터 추출 
+
+dal_se_gu <- read.csv('AL_27290_D197_20210113_달서구.csv',header = T)
+dim(dal_se_gu)
+
+dal_se_gu_1 <-dal_se_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(dal_se_gu_1)
+
+# 층수 테이블 확인 
+
+table(dal_se_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(dal_se_gu_1$지상층수))
+
+# 결측치 제거 
+
+dal_se_gu_1 <- dal_se_gu_1[!is.na(dal_se_gu_1$지상층수),]
+table(is.na(dal_se_gu_1$지상층수))
+table(dal_se_gu_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+dal_se_gu_2<- dal_se_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dal_se_gu_2)
+
+# 등간척도 형변환
+
+class(dal_se_gu_2$건물층수척도)
+dal_se_gu_2[,'건물층수척도'] <-as.numeric(dal_se_gu_2$건물층수척도) 
+class(dal_se_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dal_se_gu_3<- dal_se_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dal_se_gu_3)
+max(dong_gu_3$건물점수총합)
+View(dal_se_gu_3)
+
+# 파일로 저장 
+
+write.csv(dal_se_gu_3,'건물층수 등간척도 총합계(달서구1).csv')
+
+# 6. 남구/동구/서구/수성구/북구/달서구
+# 중구 데이터 추출 
+
+jung_gu <- read.csv('AL_27110_D197_20210113_중구.csv',header = T)
+dim(jung_gu)
+
+jung_gu_1 <-jung_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(jung_gu_1)
+
+# 층수 테이블 확인 
+
+table(jung_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(jung_gu_1$지상층수))
+
+# 결측치 없음  
+
+# 결측치 제거 
+
+dal_se_gu_1 <- dal_se_gu_1[!is.na(dal_se_gu_1$지상층수),]
+table(is.na(dal_se_gu_1$지상층수))
+table(dal_se_gu_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+jung_gu_2<- jung_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(jung_gu_2)
+
+# 등간척도 형변환
+
+class(jung_gu_2$건물층수척도)
+jung_gu_2[,'건물층수척도'] <-as.numeric(jung_gu_2$건물층수척도) 
+class(jung_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+jung_gu_3<- jung_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(jung_gu_3)
+max(dong_gu_3$건물점수총합)
+View(jung_gu_3)
+
+# 파일로 저장 
+
+write.csv(jung_gu_3,'건물층수 등간척도 총합계(중구).csv')
+
+# 7. 남구/동구/서구/수성구/북구/달서구/중구
+#  달성군군데이터 추출 
+
+dal_sung_gun <- read.csv('AL_27710_D197_20210113_달성군.csv',header = T)
+dim(dal_sung_gun)
+
+dal_sung_gun_1 <-dal_sung_gun %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(dal_sung_gun_1)
+
+# 층수 테이블 확인 
+
+table(dal_sung_gun_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(dal_sung_gun_1$지상층수))
+
+# 결측치 없음  
+
+# 결측치 제거 
+
+dal_sung_gun_1 <- dal_sung_gun_1[!is.na(dal_sung_gun_1$지상층수),]
+table(is.na(dal_sung_gun_1$지상층수))
+table(dal_sung_gun_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+dal_sung_gun_2<- dal_sung_gun_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dal_sung_gun_2)
+
+# 등간척도 형변환
+
+class(dal_sung_gun_2$건물층수척도)
+dal_sung_gun_2[,'건물층수척도'] <-as.numeric(dal_sung_gun_2$건물층수척도) 
+class(dal_sung_gun_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dal_sung_gun_3<- dal_sung_gun_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dal_sung_gun_3)
+max(dong_gu_3$건물점수총합)
+View(dal_sung_gun_3)
+
+dal_sung_gun_x <-  dal_sung_gun_2 %>% 
+  filter(지상층수>=11)
+View(dal_sung_gun_x)
+# 파일로 저장 
+
+write.csv(dal_sung_gun_3,'건물층수 등간척도 총합계(달성군1).csv')
+
+
+# 8. 남구/동구/서구/수성구/북구/달서구/중구
+#  북구데이터 추출 
+
+dal_sung_gun <- read.csv('AL_27230_D197_20210113_북구.csv',header = T)
+dim(dal_sung_gun)
+
+dal_sung_gun_1 <-dal_sung_gun %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(dal_sung_gun_1)
+
+# 층수 테이블 확인 
+
+table(dal_sung_gun_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(dal_sung_gun_1$지상층수))
+
+# 결측치 없음  
+
+# 결측치 제거 
+
+dal_sung_gun_1 <- dal_sung_gun_1[!is.na(dal_sung_gun_1$지상층수),]
+table(is.na(dal_sung_gun_1$지상층수))
+table(dal_sung_gun_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+dal_sung_gun_2<- dal_sung_gun_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dal_sung_gun_2)
+
+# 등간척도 형변환
+
+class(dal_sung_gun_2$건물층수척도)
+dal_sung_gun_2[,'건물층수척도'] <-as.numeric(dal_sung_gun_2$건물층수척도) 
+class(dal_sung_gun_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dal_sung_gun_3<- dal_sung_gun_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dal_sung_gun_3)
+max(dong_gu_3$건물점수총합)
+View(dal_sung_gun_3)
+
+# 파일로 저장 
+
+write.csv(dal_sung_gun_3,'건물층수 등간척도 총합계(북구1).csv')
+
+AL_27170_D197_20210113_서구
+
+# 6. 남구/동구/서구/수성구/북구
+#  달서구 데이터 추출 
+
+dal_se_gu <- read.csv('AL_27170_D197_20210113_서구.csv',header = T)
+dim(dal_se_gu)
+
+dal_se_gu_1 <-dal_se_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(dal_se_gu_1)
+
+# 층수 테이블 확인 
+
+table(dal_se_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(dal_se_gu_1$지상층수))
+
+# 결측치 제거 
+
+dal_se_gu_1 <- dal_se_gu_1[!is.na(dal_se_gu_1$지상층수),]
+table(is.na(dal_se_gu_1$지상층수))
+table(dal_se_gu_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+dal_se_gu_2<- dal_se_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(dal_se_gu_2)
+
+# 등간척도 형변환
+
+class(dal_se_gu_2$건물층수척도)
+dal_se_gu_2[,'건물층수척도'] <-as.numeric(dal_se_gu_2$건물층수척도) 
+class(dal_se_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+dal_se_gu_3<- dal_se_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(dal_se_gu_3)
+max(dong_gu_3$건물점수총합)
+View(dal_se_gu_3)
+
+# 파일로 저장 
+
+write.csv(dal_se_gu_3,'건물층수 등간척도 총합계(서구1).csv')
+
+# 6. 남구/동구/서구/수성구/북구/달서구
+# 중구 데이터 추출 
+
+jung_gu <- read.csv('AL_27110_D197_20210113_중구.csv',header = T)
+dim(jung_gu)
+
+jung_gu_1 <-jung_gu %>% 
+  select(기본키,읍면동,지상층수)
+
+dim(jung_gu_1)
+
+# 층수 테이블 확인 
+
+table(jung_gu_1$지상층수)
+
+#결측치 확인 
+
+table(is.na(jung_gu_1$지상층수))
+
+# 결측치 없음  
+
+# 결측치 제거 
+
+dal_se_gu_1 <- dal_se_gu_1[!is.na(dal_se_gu_1$지상층수),]
+table(is.na(dal_se_gu_1$지상층수))
+table(dal_se_gu_1$지상층수)
+
+# 동별 층수 그룹화 총점내기  
+
+jung_gu_2<- jung_gu_1 %>% 
+  mutate(건물층수척도 = cut(x = 지상층수, # 기준 데이터
+                      breaks = c(0,11,30,50,100), # 구간 : 0~20, 20~25, 25~30 ... 만약 특정 규칙이 있다면 a * 1:3 <= 이런 형태로도 가능
+                      right  = FALSE, # '=' 를 왼쪽과 오른쪽 중 어디로 할지 : 0 <= bmi < 20을 원한다면 왼쪽에 '='가 있으므로 FALSE로 지정 
+                      labels = c(0,1,2,3), # 각 구간별 이름
+                      ordered_result = FALSE)) # 순서형 factor로 만들어주고 싶다면 TRUE
+
+View(jung_gu_2)
+
+# 등간척도 형변환
+
+class(jung_gu_2$건물층수척도)
+jung_gu_2[,'건물층수척도'] <-as.numeric(jung_gu_2$건물층수척도) 
+class(jung_gu_2$건물층수척도)
+
+# 읍면동별로 건물층수 점수 총합
+
+jung_gu_3<- jung_gu_2 %>%
+  group_by(읍면동) %>% 
+  summarise(건물점수총합=sum(건물층수척도))
+
+summary(jung_gu_3)
+max(dong_gu_3$건물점수총합)
+View(jung_gu_3)
+
+# 파일로 저장 
+
+write.csv(jung_gu_3,'건물층수 등간척도 총합계(중구).csv')
+
+# y값 + 건물층수 등간척도 결합 = Y 생성 
+# 
+Y <- read.csv('찐막2.csv',header = T)
+View(Y)
+dim(Y)
+
+# 대구시 읍면동별 건물 층수 등간척도 한 데이터로 묶기 
+
+# 행정구역별 건물 층수 등간척도 데이터 불러오기 
+
+nam_gu <- read.csv('건물층수 등간척도 총합계(남구1).csv',header = T)
+dal_se_gu <- read.csv('건물층수 등간척도 총합계(달서구1).csv',header = T)
+dal_sung_gun <- read.csv('건물층수 등간척도 총합계(달성군1).csv',header = T)
+dong_gu <- read.csv('건물층수 등간척도 총합계(동구1).csv',header = T)
+buk_gu <- read.csv('건물층수 등간척도 총합계(북구1).csv',header = T)
+se_gu<- read.csv('건물층수 등간척도 총합계(서구1).csv',header = T)
+su_sung_gu <- read.csv('건물층수 등간척도 총합계(수성구1).csv',header = T)
+jong_gu <- read.csv('건물층수 등간척도 총합계(남구1).csv',header = T)
+
+# 불러온 데이터 차원 확인 
+dim(nam_gu)
+dim(dal_se_gu)
+dim(dal_sung_gun)
+dim(dong_gu)
+dim(buk_gu)
+dim(se_gu)
+dim(su_sung_gu)
+dim(jong_gu)
+
+
+# 건물층수 등간척도 데이터 병합 
+
+a<- rbind(nam_gu,dal_se_gu)
+b<- rbind(a,dal_sung_gun)
+c <- rbind(b,dong_gu)
+d <- rbind(c,buk_gu)
+e <- rbind(d,se_gu)
+f <- rbind(e,jong_gu)
+g<- rbind(f,su_sung_gu)
+
+# 최종 결과파일 g 확인 
+
+View(g)
+qq<- unique(g)
+dim(qq)
+
+# 통합 데이터 저장 및 불러오기 
+
+write.csv(g,'대구시건물층수 등간척도 통합데이터_final.csv')
+AAA<- read.csv('대구시건물층수 등간척도 통합데이터_final.csv',header =T )
+dim(AAA)
+dim(Y)
+table(g$읍면동) 
+
+
+# y산출 데이터와 건물총점 데이터 통합 
+
+final_Y_score_1 <- left_join(Y,AAA, by = '읍면동')
+aaaa<- unique(final_Y_score_1$읍면동)
+View(aaaa)
+
+final_Y_score_2<- unique(final_Y_score_1$읍면동)
+write.csv(final_Y_score_1,'건물총점데이터(y병합).csv')
+
+final_Y_score_2<- unique(final_Y_score_1)
+dim(FINAL1)
+View(FINAL1)
+
+write.csv(asdf1,'찐막 통합데이터.csv')
+# MERGE/LEFT_JOIN 합병이 안되면 키값이 일치하는지 확인해야함
+
+
+View(final_Y_score)
+
+# 상관관계 및 회귀분석 
+
+GG<- read.csv('모든요인통합데이터(이상치o).csv',header = T)
+
+
+# 데이터 백업 
+GG_BACK_UP <- GG
+View(GG)
+
+
+#사용데이터 GG 
+par("mar")
+
+par(mar=c(1,1,1,1))
+
+par(mfrow=(c(3,3)))
+par(mar=c(1,1,1,1))
+boxplot(GG$노후건물개수,main = '노후건물')
+boxplot(GG$전통시장개수,main = '전통시장')
+boxplot(GG$산업건물개수, main = '산업건물')
+boxplot(GG$위험물저장및처리시설개수, main = '위험물처리')
+boxplot(GG$숙박시설개수, main = '숙박시설')
+boxplot(GG$의료시설개수, main = '의료시설개수')
+boxplot(GG$단독주택개수, main = '단독주택개수')
+boxplot(GG$읍면동별창고개수, main = '읍면동별창고개수')
+
+# 극단값 확인 
+
+boxplot(GG$노후건물개수,main = '노후건물')$stats[5,]                    # 1199
+boxplot(GG$전통시장개수,main = '전통시장')$stats[5,]                    # 2
+boxplot(GG$산업건물개수, main = '산업건물')$stats[5,]                   # 0
+boxplot(GG$위험물저장및처리시설개수, main = '위험물처리')$stats[5,]     # 10
+boxplot(GG$숙박시설개수, main = '숙박시설')$stats[5,]                   #10
+boxplot(GG$의료시설개수, main = '의료시설개수')$stats[5,]               #2
+boxplot(GG$단독주택개수, main = '단독주택개수')$stats[5,]               #1515
+
+# $stats[5,] 를 통해서 극단값을 확인 
+
+
+# 데이터 백업
+GGG_1_RAW_PROCESSED <- GGG_1
+
+# 이상치 정제
+# GGG_1_1 <- read.csv('이상치제거통합데이터(진행중).csv',header = T)
+
+
+# 이상치 NA처리 
+
+GG$노후건물개수 <- ifelse (GG$노후건물개수> 1199 , NA, GG$노후건물개수)#
+GG$전통시장개수 <- ifelse (GG$전통시장개수>2 , NA, GG$전통시장개수)#
+GG$위험물저장및처리시설개수 <- ifelse (GG$위험물저장및처리시설개수>10 , NA, GG$위험물저장및처리시설개수)#
+GG$단독주택개수 <- ifelse (GG$단독주택개수>1515 , NA, GG$단독주택개수)#
+GG$숙박시설개수 <- ifelse (GG$숙박시설개수>10 , NA, GG$숙박시설개수)#
+GG$의료시설개수 <- ifelse (GG$의료시설개수>2 , NA, GG$의료시설개수)#
+
+
+
+# 이상치 제거 데이터 백업
+GG_RAW_PROCESS <- GG
+View(GG)
+
+GG<- read.csv('잔차검증 테스트 통과 데이터(final).csv',header = T)
+
+# 이상치 제거 확인 
+
+par(mfrow=c(3,3))
+boxplot(GG$노후건물개수,main = '노후건물')
+boxplot(GG$전통시장개수,main = '전통시장')
+boxplot(GG$산업건물개수, main = '산업건물')
+boxplot(GG$위험물저장및처리시설개수, main = '위험물처리')
+boxplot(GG$숙박시설개수, main = '숙박시설')
+boxplot(GG$의료시설개수, main = '의료시설개수')
+boxplot(GG$단독주택개수, main = '단독주택개수')
+
+# 이상치 제거 데이터 저장
+GG_1 <- GG %>% 
+  filter(!is.na(목조건물개수))
+
+GG_1 <- GG_1 %>% 
+  filter(!is.na(노후건물개수))
+
+GG_1 <- GG_1 %>% 
+  filter(!is.na(전통시장개수))
+
+GG_1 <- GG_1 %>% 
+  filter(!is.na(산업건물개수))
+
+GG_1 <- GG_1 %>% 
+  filter(!is.na(위험물저장및처리시설개수))
+
+GG_1 <- GG_1 %>% 
+  filter(!is.na(연평균면적))
+
+GG_1 <- GG_1 %>% 
+  filter(!is.na(단독주택개수))
+
+GG_1 <- GG_1 %>% 
+  filter(!is.na(숙박시설개수))
+
+GG_1 <- GG_1 %>% 
+  filter(!is.na(의료시설개수))
+
+GG_1 <- GG %>% 
+  filter(!is.na(목조건물개수))
+View(GG_1)
+
+# 데이터 백업 및 저장 
+GG_1_BACK_UP <- GG_1
+write.csv(GG_1,'NA변환값 필터링 데이터.csv')
+
+GG_1<- GG
+View(head(GG,1))
+
+# 필요없는열 제거
+# 목조/단독주택/연평균면적 -제외할거 
+head(GG_1,1)
+
+
+GG_1 <- subset(GG_1, select = -X)
+GG_1 <- subset(GG_1, select = -연평균면적)
+GG_1 <- subset(GG_1, select = -목조건물개수 )
+GG_1 <- subset(GG_1, select = -연평균면적)
+GG_1 <- subset(GG, select = -읍면동)
+View(GG_1)
+
+write.csv(GG_1,'보고서 드가는 회귀(0817.12.30).csv')
+
+# 이상치 제거 데이터 상관분석/회귀분석 
+
+library(corrplot)
+plot.new()
+corrplot(cor(GG_1),method = 'number')
+corrplot(cor(GG_1),method = 'circle')
+
+
+
+# 회귀분석(pm요청) 
+
+regression_anaylse_1<- lm(sum_y~. ,data = GG_1)
+summary(regression_anaylse_1)
+
+# STEP 단계선택법
+
+regression_anaylse_2<- step(regression_anaylse_1,direction = 'both')
+summary(regression_anaylse_2)
+
+# 단계선택법
+# step(regression_anaylse_1,direction = 'both')
+
+# step 모델 회귀분석
+
+regression_anaylse_3<- lm(formula = sum_y ~ 산업건물개수 + 위험물저장및처리시설개수 + 
+                            단독주택개수 + 숙박시설개수 + 의료시설개수, data = GG_1)
+
+summary(regression_anaylse_3)
+
+###################################################
+# aic 성능가장 좋은 회귀모델 
+
+
+# 회귀분석 잔차 검증
+# 회귀분석변수 : regression_anaylse_3
+
+library('car')
+
+# 회귀모델 잔차확인 
+
+regression_anaylse_watson <- residuals(regression_anaylse_3)
+
+# 잔차 그림들 확인 
+plot(regression_anaylse_watson)
+
+
+# 더빈왓슨 
+durbinWatsonTest(regression_anaylse_watson)
+
+# 잔차확인(샤피로,더빈,스코어)
+shapiro.test(regression_anaylse_watson) # 오차의정규성
+dwtest(regression_anaylse_3)            # 오차의 독립성
+car::ncvTest(regression_anaylse_3)      # 오차의 등분산
+# 다중공선성 진단
+library(car)
+
+vif(regression_anaylse_3)
+
+# 잔차
+
+library(lmtest)
+par(mfrow=c(2,2))
+plot(regression_anaylse_1)
+
+# 1번그림 : 등분산
+# 2번그림 : 정규성 
+# 3번그림 : 기울기 0이 좋음 
+# 4번그림 : 왼쪽 가운데 몰려야 좋은것것
+# cook's distance 극단값을 나타내는 지표 
+
+View(GG)
+
+# 잔차의 정규성(샤피로검정)
+# 오차의 등분산(score test)
+#  ->H_0 : 등분산 : 귀무가설을 채택해야함  
+# 오차항의 독립성(durbin -Watson) - 관측값에 대한 오차항의 상관관계
+#  ->H_0 : 오차는 독립 
+
+# shapiro.test(residuals(회귀모델변수))
+
+
+###################################################################
+####표본의 개수가 2000개 이상이면 Kolmogorov-Smirnov test를########
+#####2000개 이하이면 Shapiro-Wilk test를 사용               #######
+###################################################################
+- 파이썬
+# 도시공원
+import glob
+import os
+import pandas as pd
+
+# .csv 합치기
+inputPath = r'C:\Users\user\Desktop\107\data'
+outputFile = r'C:\Users\user\Desktop\107\data\대구광역시_도시공원정보.csv'
+
+inputFiles = glob.glob(os.path.join(inputPath, '대구광역시_*'))
+
+data = []
+
+for file in inputFiles:
+    df = pd.read_csv(file, encoding = 'cp949')
+    data.append(df)
+
+alldata = pd.concat(data, axis = 0, ignore_index = True)
+
+# 공원면적 15m2 이상
+alldata = alldata[alldata.공원면적 >= 15]
+
+alldata.to_csv(outputFile, encoding = 'utf-8-sig', index = False)
+
+
+
+
+
